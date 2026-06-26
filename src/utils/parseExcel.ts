@@ -22,11 +22,11 @@ function parseNum(val: unknown): number {
 
 function isEntradasFormat(headers: string[]): boolean {
   const h = headers.map((x) => x.toLowerCase().trim());
-  const hasTotal = h.some((x) => x === 'total' || x === 'total ');
+  const hasTotal = h.some((x) => x.includes('total'));
   const hasDateCol = h.some(
-    (x) => x.includes('data_numero') || x.includes('data_txt') || x.includes('data_numer')
+    (x) => x.includes('data') || x.includes('date') || x.includes('data_numero') || x.includes('data_txt')
   );
-  return hasTotal && (hasDateCol || h.length <= 5);
+  return hasTotal && hasDateCol;
 }
 
 function parseEntradasFormat(
@@ -38,10 +38,10 @@ function parseEntradasFormat(
   );
 
   const dateIdx = headers.findIndex(
-    (h) => h.includes('data_numero') || h.includes('data_numer')
+    (h) => h.includes('data') && (h.includes('numero') || h.includes('numer') || !h.includes('txt'))
   );
-  const dateTxtIdx = headers.findIndex((h) => h.includes('data_txt'));
-  const totalIdx = headers.findIndex((h) => h === 'total' || h === 'total ');
+  const dateTxtIdx = headers.findIndex((h) => h.includes('data'));
+  const totalIdx = headers.findIndex((h) => h.includes('total'));
 
   const transactions: Transaction[] = [];
   for (let i = 1; i < rows.length; i++) {
