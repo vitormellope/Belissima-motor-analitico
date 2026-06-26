@@ -80,10 +80,23 @@ export function parseExcelFile(
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = new Uint8Array(e.target!.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: 'array', cellDates: true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+        const result = e.target!.result as ArrayBuffer | string;
+        let rows: unknown[][];
+
+        // Verificar se é CSV ou Excel
+        if (file.name.endsWith('.csv') || typeof result === 'string') {
+          // Parse CSV
+          const csvText = typeof result === 'string' ? result : new TextDecoder().decode(new Uint8Array(result as ArrayBuffer));
+          rows = csvText.split('\n')
+            .filter(line => line.trim())
+            .map(line => line.split(',').map(cell => cell.trim()));
+        } else {
+          // Parse Excel
+          const data = new Uint8Array(result as ArrayBuffer);
+          const wb = XLSX.read(data, { type: 'array', cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+        }
 
         if (!rows.length) { resolve([]); return; }
 
