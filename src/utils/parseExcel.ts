@@ -16,7 +16,11 @@ function parseDate(val: unknown): Date | null {
 
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return val;
-  if (typeof val === 'string') return parseFloat(val.replace(',', '.')) || 0;
+  if (typeof val === 'string') {
+    // Remove "R$", espaços, e converte formato BR (2.940,00 → 2940.00)
+    const s = val.replace(/R\$\s*/g, '').trim().replace(/\./g, '').replace(',', '.');
+    return parseFloat(s) || 0;
+  }
   return 0;
 }
 
