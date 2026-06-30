@@ -8,6 +8,13 @@ function parseDate(val: unknown): Date | null {
     if (d) return new Date(d.y, d.m - 1, d.d);
   }
   if (typeof val === 'string') {
+    // Formato brasileiro dd/mm/yyyy — tem que ser o primeiro a testar
+    const br = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (br) {
+      const d = new Date(parseInt(br[3]), parseInt(br[2]) - 1, parseInt(br[1]));
+      if (!isNaN(d.getTime())) return d;
+    }
+    // Fallback para ISO ou outros formatos
     const d = new Date(val);
     if (!isNaN(d.getTime())) return d;
   }
@@ -160,7 +167,8 @@ export function parseExcelFile(
           } else {
             // Tenta como Excel binário
             const data = new Uint8Array(result);
-            const wb = XLSX.read(data, { type: 'array', cellDates: true });
+            // cellDates: false evita que o XLSX interprete datas no formato US (MM/DD) quebrando datas BR (DD/MM)
+            const wb = XLSX.read(data, { type: 'array', cellDates: false });
             const ws = wb.Sheets[wb.SheetNames[0]];
             rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
           }
