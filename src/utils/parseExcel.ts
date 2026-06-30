@@ -42,7 +42,7 @@ function parseNum(val: unknown): number {
 
 // Detecta se o arquivo é de entradas (quadro de vendas diário)
 function isEntradasFormat(headers: string[], firstDataRow?: unknown[]): boolean {
-  const h = headers.map((x) => x.toLowerCase().trim());
+  const h = Array.from(headers).map((x) => String(x ?? '').toLowerCase().trim());
   const hasTotal = h.some((x) => x.includes('total'));
   if (!hasTotal) return false;
 
@@ -64,7 +64,7 @@ function isEntradasFormat(headers: string[], firstDataRow?: unknown[]): boolean 
 }
 
 function parseEntradasFormat(rows: unknown[][], source: 'saidas' | 'entradas'): Transaction[] {
-  const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
+  const headers = Array.from(rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
 
   // Índice da coluna de data (pelo header)
   let dateIdx = headers.findIndex((h) => h.includes('data') || h.includes('date'));
@@ -112,7 +112,7 @@ function parseEntradasFormat(rows: unknown[][], source: 'saidas' | 'entradas'): 
 }
 
 function parseSaidasFormat(rows: unknown[][], source: 'saidas' | 'entradas'): Transaction[] {
-  const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
+  const headers = Array.from(rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
 
   const colIdx = {
     numero:     headers.findIndex((h) => h.includes('número') || h.includes('numero')),
