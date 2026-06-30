@@ -20,6 +20,56 @@ function parseNum(val: unknown): number {
   return 0;
 }
 
+// Parse HTML tables (para arquivos HTML disfarçados de XLS)
+function parseHTMLTable(html: string): unknown[][] {
+  const cells: string[] = [];
+  const cellRegex = /<td[^>]*>(.*?)<\/td>/gs;
+  let match;
+
+  while ((match = cellRegex.exec(html)) !== null) {
+    const cell = match[1].replace(/<[^>]+>/g, '').trim();
+    if (cell && cell !== '&nbsp;') {
+      cells.push(cell);
+    }
+  }
+
+  if (cells.length === 0) return [];
+
+  // Detectar quantas colunas tem (por heurística)
+  // Procura por padrões de data (dd/mm/yyyy) para detectar colunas
+  let colCount = 1;
+  for (let i = 0; i < Math.min(50, cells.length); i++) {
+    if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(cells[i])) {
+      // Encontrou uma data, calcula coluna
+      colCount = i + 1;
+      break;
+    }
+  }
+
+  // Se não encontrou por data, tenta por padrão de valores monetários
+  if (colCount === 1) {
+    for (let i = 0; i < Math.min(50, cells.length); i++) {
+      if (/R\$\s*[\d.,]+/.test(cells[i])) {
+        colCount = Math.max(5, Math.ceil((i + 1) / 2));
+        break;
+      }
+    }
+  }
+
+  // Se ainda não sabe, usa heurística simples
+  if (colCount === 1) {
+    colCount = Math.ceil(Math.sqrt(cells.length / 50)); // aprox
+  }
+
+  const rows: unknown[][] = [];
+  for (let i = 0; i < cells.length; i += colCount) {
+    const row = cells.slice(i, i + colCount);
+    if (row.length > 0) rows.push(row);
+  }
+
+  return rows;
+}
+
 function isEntradasFormat(headers: string[]): boolean {
   const h = headers.map((x) => x.toLowerCase().trim());
   const hasTotal = h.some((x) => x.includes('total'));
@@ -95,19 +145,26 @@ export function parseExcelFile(
         const result = e.target!.result as ArrayBuffer;
         let rows: unknown[][];
 
-        // Verificar se é CSV ou Excel
-        if (file.name.endsWith('.csv')) {
-          // Parse CSV
-          const csvText = new TextDecoder().decode(new Uint8Array(result));
-          rows = csvText.split('\n')
-            .filter(line => line.trim())
-            .map(line => line.split(',').map(cell => cell.trim()));
-        } else {
-          // Parse Excel
-          const data = new Uint8Array(result);
-          const wb = XLSX.read(data, { type: 'array', cellDates: true });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+        // Tentar diferentes formatos de parse
+        try {
+          // Primeiro, tenta como Excel/CSV
+          if (file.name.endsWith('.csv')) {
+            const csvText = new TextDecoder().decode(new Uint8Array(result));
+            rows = csvText.split('\n')
+              .filter(line => line.trim())
+              .map(line => line.split(',').map(cell => cell.trim()));
+          } else {
+            // Tenta como Excel binário
+            const data = new Uint8Array(result);
+            const wb = XLSX.read(data, { type: 'array', cellDates: true });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+          }
+        } catch (excelErr) {
+          console.log('Falha ao parsear como Excel/CSV, tentando como HTML...');
+          // Se falhar, tenta como HTML
+          const htmlText = new TextDecoder().decode(new Uint8Array(result));
+          rows = parseHTMLTable(htmlText);
         }
 
         if (!rows.length) {
@@ -131,46 +188,86 @@ export function parseExcelFile(
           return;
         }
 
-        // Saídas / Contas a Pagar format
+        // Saídas / Contas a Pagar format - mais flexível
         const colIdx = {
           numero: headers.findIndex((h) => h.includes('número') || h.includes('numero')),
           tipo: headers.findIndex((h) => h === 'tipo'),
           empresa: headers.findIndex((h) => h === 'empresa'),
           natureza: headers.findIndex((h) => h === 'natureza'),
           data: headers.findIndex((h) => h === 'data'),
-          vPrevisto: headers.findIndex((h) => h.includes('previsto')),
-          vRealizado: headers.findIndex((h) => h.includes('realizado')),
+          vPrevisto: headers.findIndex((h) => h.includes('previsto') || h === 'vprevisto'),
+          vRealizado: headers.findIndex((h) => h.includes('realizado') || h === 'vrealizado'),
           conta: headers.findIndex((h) => h === 'conta'),
           fornecedor: headers.findIndex((h) => h === 'fornecedor'),
         };
+
+        console.log('Saídas - colIdx:', colIdx);
 
         const transactions: Transaction[] = [];
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i] as unknown[];
           if (!row || row.length === 0) continue;
 
-          const dateVal = row[colIdx.data >= 0 ? colIdx.data : 4];
-          const dt = parseDate(dateVal);
-          if (!dt) continue;
+          // Encontra a data na linha (pode estar em qualquer coluna com padrão dd/mm/yyyy)
+          let dt: Date | null = null;
+          let dateVal: unknown = null;
+
+          if (colIdx.data >= 0) {
+            dateVal = row[colIdx.data];
+            dt = parseDate(dateVal);
+          } else {
+            // Procura por padrão de data em qualquer coluna
+            for (let j = 0; j < row.length; j++) {
+              const cell = String(row[j] ?? '');
+              if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(cell)) {
+                dt = parseDate(cell);
+                if (dt) break;
+              }
+            }
+          }
+
+          if (!dt) {
+            if (i <= 3) console.log(`Linha ${i}: falha ao encontrar data`, row);
+            continue;
+          }
 
           const natureza = String(
             row[colIdx.natureza >= 0 ? colIdx.natureza : 3] ?? ''
           ).trim();
           if (!natureza) continue;
 
+          // Encontra valores monetários
+          let vPrev = 0;
+          let vReal = 0;
+
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j] ?? '');
+            if (/R\$\s*[\d.,]+/.test(cell)) {
+              const val = parseNum(cell);
+              if (vPrev === 0) vPrev = val;
+              else if (vReal === 0) vReal = val;
+            }
+          }
+
+          if (vReal === 0) vReal = vPrev; // Se só tiver um valor, usa para ambos
+
           transactions.push({
-            numero: parseNum(row[colIdx.numero >= 0 ? colIdx.numero : 0]),
+            numero: colIdx.numero >= 0 ? parseNum(row[colIdx.numero]) : i,
             tipo: String(row[colIdx.tipo >= 0 ? colIdx.tipo : 1] ?? ''),
             empresa: String(row[colIdx.empresa >= 0 ? colIdx.empresa : 2] ?? ''),
             natureza,
             data: dt,
-            vPrevisto: parseNum(row[colIdx.vPrevisto >= 0 ? colIdx.vPrevisto : 7]),
-            vRealizado: parseNum(row[colIdx.vRealizado >= 0 ? colIdx.vRealizado : 8]),
-            conta: String(row[colIdx.conta >= 0 ? colIdx.conta : 9] ?? ''),
-            fornecedor: String(row[colIdx.fornecedor >= 0 ? colIdx.fornecedor : 10] ?? ''),
+            vPrevisto: vPrev,
+            vRealizado: vReal,
+            conta: String(row[colIdx.conta >= 0 ? colIdx.conta : 7] ?? ''),
+            fornecedor: String(row[colIdx.fornecedor >= 0 ? colIdx.fornecedor : 8] ?? ''),
             source,
           });
+
+          if (i <= 3) console.log(`Linha ${i} parseada:`, natureza, dt, vPrev, vReal);
         }
+
+        console.log('Total de saídas parseadas:', transactions.length);
         resolve(transactions);
       } catch (err) {
         reject(err);
