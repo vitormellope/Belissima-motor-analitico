@@ -1,6 +1,12 @@
 import * as XLSX from 'xlsx';
 import type { Transaction } from '../types';
 
+const PT_MONTHS: { [key: string]: number } = {
+  'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3,
+  'maio': 4, 'junho': 5, 'julho': 6, 'agosto': 7,
+  'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11,
+};
+
 function parseDate(val: unknown): Date | null {
   if (val instanceof Date) return val;
   if (typeof val === 'number') {
@@ -8,15 +14,18 @@ function parseDate(val: unknown): Date | null {
     if (d) return new Date(d.y, d.m - 1, d.d);
   }
   if (typeof val === 'string') {
-    // Formato brasileiro dd/mm/yyyy — tem que ser o primeiro a testar
-    const br = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (br) {
-      const d = new Date(parseInt(br[3]), parseInt(br[2]) - 1, parseInt(br[1]));
+    // "Sexta, 02 de janeiro de 2026" — exportação do quadro de vendas
+    const ptMatch = val.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+    if (ptMatch) {
+      const mes = PT_MONTHS[ptMatch[2].toLowerCase()];
+      if (mes !== undefined) return new Date(parseInt(ptMatch[3]), mes, parseInt(ptMatch[1]));
+    }
+    // Formato BR: dd/mm/yyyy
+    const brMatch = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (brMatch) {
+      const d = new Date(parseInt(brMatch[3]), parseInt(brMatch[2]) - 1, parseInt(brMatch[1]));
       if (!isNaN(d.getTime())) return d;
     }
-    // Fallback para ISO ou outros formatos
-    const d = new Date(val);
-    if (!isNaN(d.getTime())) return d;
   }
   return null;
 }
@@ -24,109 +33,67 @@ function parseDate(val: unknown): Date | null {
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return val;
   if (typeof val === 'string') {
-    // Remove "R$", espaços, e converte formato BR (2.940,00 → 2940.00)
+    // Remove "R$", remove pontos de milhar, troca vírgula decimal por ponto
     const s = val.replace(/R\$\s*/g, '').trim().replace(/\./g, '').replace(',', '.');
     return parseFloat(s) || 0;
   }
   return 0;
 }
 
-// Parse HTML tables (para arquivos HTML disfarçados de XLS)
-function parseHTMLTable(html: string): unknown[][] {
-  const cells: string[] = [];
-  const cellRegex = /<td[^>]*>(.*?)<\/td>/gs;
-  let match;
+// Detecta se o arquivo é de entradas (quadro de vendas diário)
+function isEntradasFormat(headers: string[], firstDataRow?: unknown[]): boolean {
+  const h = headers.map((x) => x.toLowerCase().trim());
+  const hasTotal = h.some((x) => x.includes('total'));
+  if (!hasTotal) return false;
 
-  while ((match = cellRegex.exec(html)) !== null) {
-    const cell = match[1].replace(/<[^>]+>/g, '').trim();
-    if (cell && cell !== '&nbsp;') {
-      cells.push(cell);
-    }
+  // Com coluna de data explícita
+  const hasDateCol = h.some((x) => x.includes('data') || x.includes('date'));
+  if (hasDateCol) return true;
+
+  // Sem coluna de data: verifica se primeira linha de dados tem mês em português
+  if (firstDataRow) {
+    const hasPtDate = firstDataRow.some(
+      (cell) =>
+        typeof cell === 'string' &&
+        /\b(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i.test(cell),
+    );
+    if (hasPtDate) return true;
   }
 
-  if (cells.length === 0) return [];
+  return false;
+}
 
-  // Detectar quantas colunas tem (por heurística)
-  // Procura por padrões de data (dd/mm/yyyy) para detectar colunas
-  let colCount = 1;
-  for (let i = 0; i < Math.min(50, cells.length); i++) {
-    if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(cells[i])) {
-      // Encontrou uma data, calcula coluna
-      colCount = i + 1;
-      break;
-    }
-  }
+function parseEntradasFormat(rows: unknown[][], source: 'saidas' | 'entradas'): Transaction[] {
+  const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
 
-  // Se não encontrou por data, tenta por padrão de valores monetários
-  if (colCount === 1) {
-    for (let i = 0; i < Math.min(50, cells.length); i++) {
-      if (/R\$\s*[\d.,]+/.test(cells[i])) {
-        colCount = Math.max(5, Math.ceil((i + 1) / 2));
+  // Índice da coluna de data (pelo header)
+  let dateIdx = headers.findIndex((h) => h.includes('data') || h.includes('date'));
+
+  // Se não tem no header, descobre pela primeira linha de dados
+  if (dateIdx < 0 && rows[1]) {
+    const firstRow = rows[1] as unknown[];
+    for (let j = 0; j < firstRow.length; j++) {
+      if (parseDate(firstRow[j]) !== null) {
+        dateIdx = j;
         break;
       }
     }
   }
 
-  // Se ainda não sabe, usa heurística simples
-  if (colCount === 1) {
-    colCount = Math.ceil(Math.sqrt(cells.length / 50)); // aprox
-  }
-
-  const rows: unknown[][] = [];
-  for (let i = 0; i < cells.length; i += colCount) {
-    const row = cells.slice(i, i + colCount);
-    if (row.length > 0) rows.push(row);
-  }
-
-  return rows;
-}
-
-function isEntradasFormat(headers: string[]): boolean {
-  const h = headers.map((x) => x.toLowerCase().trim());
-  const hasTotal = h.some((x) => x.includes('total'));
-  const hasDateCol = h.some(
-    (x) => x.includes('data') || x.includes('date') || x.includes('data_numero') || x.includes('data_txt')
-  );
-  return hasTotal && hasDateCol;
-}
-
-function parseEntradasFormat(
-  rows: unknown[][],
-  source: 'saidas' | 'entradas'
-): Transaction[] {
-  const headers = (rows[0] as unknown[]).map((h) =>
-    String(h ?? '').toLowerCase().trim()
-  );
-
-  const dateIdx = headers.findIndex(
-    (h) => h.includes('data') && (h.includes('numero') || h.includes('numer') || !h.includes('txt'))
-  );
-  const dateTxtIdx = headers.findIndex((h) => h.includes('data'));
+  // Índice da coluna de total
   const totalIdx = headers.findIndex((h) => h.includes('total'));
-
-  console.log('parseEntradasFormat - dateIdx:', dateIdx, 'dateTxtIdx:', dateTxtIdx, 'totalIdx:', totalIdx);
 
   const transactions: Transaction[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
-    if (!row || row.length === 0) continue;
+    if (!row || row.every((c) => c == null || c === '')) continue;
 
-    const rawDate =
-      dateIdx >= 0 ? row[dateIdx] : dateTxtIdx >= 0 ? row[dateTxtIdx] : null;
+    const rawDate = dateIdx >= 0 ? row[dateIdx] : row[0];
     const data = parseDate(rawDate);
+    if (!data) continue;
 
-    if (!data) {
-      if (i <= 3) console.log(`Linha ${i}: falha ao parsear data:`, rawDate);
-      continue;
-    }
-
-    const total = parseNum(row[totalIdx >= 0 ? totalIdx : 1]);
-    if (total === 0) {
-      if (i <= 3) console.log(`Linha ${i}: total é zero`);
-      continue;
-    }
-
-    if (i <= 3) console.log(`Linha ${i} parseada com sucesso:`, data, total);
+    const total = parseNum(totalIdx >= 0 ? row[totalIdx] : row[row.length - 1]);
+    if (total === 0) continue;
 
     transactions.push({
       numero: i,
@@ -141,146 +108,96 @@ function parseEntradasFormat(
       source,
     });
   }
-  console.log('Total de transações parseadas:', transactions.length);
   return transactions;
 }
 
-export function parseExcelFile(
-  file: File,
-  source: 'saidas' | 'entradas'
-): Promise<Transaction[]> {
+function parseSaidasFormat(rows: unknown[][], source: 'saidas' | 'entradas'): Transaction[] {
+  const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
+
+  const colIdx = {
+    numero:     headers.findIndex((h) => h.includes('número') || h.includes('numero')),
+    tipo:       headers.findIndex((h) => h === 'tipo'),
+    empresa:    headers.findIndex((h) => h === 'empresa'),
+    natureza:   headers.findIndex((h) => h === 'natureza'),
+    data:       headers.findIndex((h) => h === 'data'),
+    vPrevisto:  headers.findIndex((h) => h.includes('previsto')),
+    vRealizado: headers.findIndex((h) => h.includes('realizado')),
+    conta:      headers.findIndex((h) => h === 'conta'),
+    fornecedor: headers.findIndex((h) => h === 'fornecedor'),
+  };
+
+  const transactions: Transaction[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i] as unknown[];
+    if (!row || row.every((c) => c == null || c === '')) continue;
+
+    // Data: usa coluna detectada ou procura dd/mm/yyyy em qualquer célula
+    let dt: Date | null = null;
+    if (colIdx.data >= 0) {
+      dt = parseDate(row[colIdx.data]);
+    } else {
+      for (const cell of row) {
+        dt = parseDate(cell);
+        if (dt) break;
+      }
+    }
+    if (!dt) continue;
+
+    // Natureza: obrigatória para classificar a despesa
+    const natureza = String(row[colIdx.natureza >= 0 ? colIdx.natureza : 3] ?? '').trim();
+    if (!natureza) continue;
+
+    // Valores: usa colunas detectadas quando existem, senão posição padrão
+    const vPrevisto  = parseNum(row[colIdx.vPrevisto  >= 0 ? colIdx.vPrevisto  : 5]);
+    const vRealizado = parseNum(row[colIdx.vRealizado >= 0 ? colIdx.vRealizado : 6]);
+
+    transactions.push({
+      numero:     parseNum(row[colIdx.numero    >= 0 ? colIdx.numero    : 0]),
+      tipo:       String(row[colIdx.tipo        >= 0 ? colIdx.tipo      : 1] ?? ''),
+      empresa:    String(row[colIdx.empresa     >= 0 ? colIdx.empresa   : 2] ?? ''),
+      natureza,
+      data:       dt,
+      vPrevisto,
+      vRealizado,
+      conta:      String(row[colIdx.conta       >= 0 ? colIdx.conta     : 7] ?? ''),
+      fornecedor: String(row[colIdx.fornecedor  >= 0 ? colIdx.fornecedor : 8] ?? ''),
+      source,
+    });
+  }
+  return transactions;
+}
+
+export function parseExcelFile(file: File, source: 'saidas' | 'entradas'): Promise<Transaction[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const result = e.target!.result as ArrayBuffer;
+        const buffer = e.target!.result as ArrayBuffer;
         let rows: unknown[][];
 
-        // Tentar diferentes formatos de parse
-        try {
-          // Primeiro, tenta como Excel/CSV
-          if (file.name.endsWith('.csv')) {
-            const csvText = new TextDecoder().decode(new Uint8Array(result));
-            rows = csvText.split('\n')
-              .filter(line => line.trim())
-              .map(line => line.split(',').map(cell => cell.trim()));
-          } else {
-            // Tenta como Excel binário
-            const data = new Uint8Array(result);
-            // cellDates: false evita que o XLSX interprete datas no formato US (MM/DD) quebrando datas BR (DD/MM)
-            const wb = XLSX.read(data, { type: 'array', cellDates: false });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
-          }
-        } catch (excelErr) {
-          console.log('Falha ao parsear como Excel/CSV, tentando como HTML...');
-          // Se falhar, tenta como HTML
-          const htmlText = new TextDecoder().decode(new Uint8Array(result));
-          rows = parseHTMLTable(htmlText);
+        if (file.name.endsWith('.csv')) {
+          const text = new TextDecoder().decode(new Uint8Array(buffer));
+          rows = text
+            .split('\n')
+            .filter((line) => line.trim())
+            .map((line) => line.split(',').map((cell) => cell.trim()));
+        } else {
+          // cellDates: false para que datas dd/mm/yyyy não sejam reinterpretadas como mm/dd
+          const wb = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: false });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
         }
 
-        if (!rows.length) {
-          console.warn('Arquivo vazio ou sem linhas');
-          resolve([]);
-          return;
+        if (!rows.length) { resolve([]); return; }
+
+        const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
+        const firstDataRow = rows[1] as unknown[] | undefined;
+
+        if (isEntradasFormat(headers, firstDataRow)) {
+          resolve(parseEntradasFormat(rows as unknown[][], source));
+        } else {
+          resolve(parseSaidasFormat(rows as unknown[][], source));
         }
-
-        const headers = (rows[0] as unknown[]).map((h) =>
-          String(h ?? '').toLowerCase().trim()
-        );
-
-        console.log('Headers encontrados:', headers);
-        console.log('É formato entradas?', isEntradasFormat(headers));
-        console.log('Total de linhas:', rows.length);
-
-        if (isEntradasFormat(headers)) {
-          const result = parseEntradasFormat(rows as unknown[][], source);
-          console.log('Entradas parseadas:', result.length);
-          resolve(result);
-          return;
-        }
-
-        // Saídas / Contas a Pagar format - mais flexível
-        const colIdx = {
-          numero: headers.findIndex((h) => h.includes('número') || h.includes('numero')),
-          tipo: headers.findIndex((h) => h === 'tipo'),
-          empresa: headers.findIndex((h) => h === 'empresa'),
-          natureza: headers.findIndex((h) => h === 'natureza'),
-          data: headers.findIndex((h) => h === 'data'),
-          vPrevisto: headers.findIndex((h) => h.includes('previsto') || h === 'vprevisto'),
-          vRealizado: headers.findIndex((h) => h.includes('realizado') || h === 'vrealizado'),
-          conta: headers.findIndex((h) => h === 'conta'),
-          fornecedor: headers.findIndex((h) => h === 'fornecedor'),
-        };
-
-        console.log('Saídas - colIdx:', colIdx);
-
-        const transactions: Transaction[] = [];
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i] as unknown[];
-          if (!row || row.length === 0) continue;
-
-          // Encontra a data na linha (pode estar em qualquer coluna com padrão dd/mm/yyyy)
-          let dt: Date | null = null;
-          let dateVal: unknown = null;
-
-          if (colIdx.data >= 0) {
-            dateVal = row[colIdx.data];
-            dt = parseDate(dateVal);
-          } else {
-            // Procura por padrão de data em qualquer coluna
-            for (let j = 0; j < row.length; j++) {
-              const cell = String(row[j] ?? '');
-              if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(cell)) {
-                dt = parseDate(cell);
-                if (dt) break;
-              }
-            }
-          }
-
-          if (!dt) {
-            if (i <= 3) console.log(`Linha ${i}: falha ao encontrar data`, row);
-            continue;
-          }
-
-          const natureza = String(
-            row[colIdx.natureza >= 0 ? colIdx.natureza : 3] ?? ''
-          ).trim();
-          if (!natureza) continue;
-
-          // Encontra valores monetários
-          let vPrev = 0;
-          let vReal = 0;
-
-          for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j] ?? '');
-            if (/R\$\s*[\d.,]+/.test(cell)) {
-              const val = parseNum(cell);
-              if (vPrev === 0) vPrev = val;
-              else if (vReal === 0) vReal = val;
-            }
-          }
-
-          if (vReal === 0) vReal = vPrev; // Se só tiver um valor, usa para ambos
-
-          transactions.push({
-            numero: colIdx.numero >= 0 ? parseNum(row[colIdx.numero]) : i,
-            tipo: String(row[colIdx.tipo >= 0 ? colIdx.tipo : 1] ?? ''),
-            empresa: String(row[colIdx.empresa >= 0 ? colIdx.empresa : 2] ?? ''),
-            natureza,
-            data: dt,
-            vPrevisto: vPrev,
-            vRealizado: vReal,
-            conta: String(row[colIdx.conta >= 0 ? colIdx.conta : 7] ?? ''),
-            fornecedor: String(row[colIdx.fornecedor >= 0 ? colIdx.fornecedor : 8] ?? ''),
-            source,
-          });
-
-          if (i <= 3) console.log(`Linha ${i} parseada:`, natureza, dt, vPrev, vReal);
-        }
-
-        console.log('Total de saídas parseadas:', transactions.length);
-        resolve(transactions);
       } catch (err) {
         reject(err);
       }
