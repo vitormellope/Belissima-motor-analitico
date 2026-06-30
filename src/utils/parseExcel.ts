@@ -15,7 +15,7 @@ function parseDate(val: unknown): Date | null {
   }
   if (typeof val === 'string') {
     // "Sexta, 02 de janeiro de 2026" — exportação do quadro de vendas
-    const ptMatch = val.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+    const ptMatch = val.match(/(\d{1,2})\s+de\s+(\S+)\s+de\s+(\d{4})/i);
     if (ptMatch) {
       const mes = PT_MONTHS[ptMatch[2].toLowerCase()];
       if (mes !== undefined) return new Date(parseInt(ptMatch[3]), mes, parseInt(ptMatch[1]));
