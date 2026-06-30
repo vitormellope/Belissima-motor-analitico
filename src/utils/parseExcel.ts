@@ -190,8 +190,9 @@ export function parseExcelFile(file: File, source: 'saidas' | 'entradas'): Promi
 
         if (!rows.length) { resolve([]); return; }
 
-        const headers = (rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
-        const firstDataRow = rows[1] as unknown[] | undefined;
+        // Array.from garante array denso (sem buracos) mesmo quando XLSX retorna array esparso
+        const headers = Array.from(rows[0] as unknown[]).map((h) => String(h ?? '').toLowerCase().trim());
+        const firstDataRow = rows[1] ? Array.from(rows[1] as unknown[]) : undefined;
 
         if (isEntradasFormat(headers, firstDataRow)) {
           resolve(parseEntradasFormat(rows as unknown[][], source));
