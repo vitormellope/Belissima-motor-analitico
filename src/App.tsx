@@ -45,8 +45,9 @@ export default function App() {
       const result = await parseExcelFile(file, 'saidas');
       setSaidas(result);
       setSaidasFile(file.name);
-    } catch {
-      setError('Erro ao processar o arquivo de saídas.');
+    } catch (err) {
+      console.error('Erro ao processar saídas:', err);
+      setError(`Erro ao processar o arquivo de saídas: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoadingSaidas(false);
     }
@@ -59,8 +60,9 @@ export default function App() {
       const result = await parseExcelFile(file, 'entradas');
       setEntradas(result);
       setEntradasFile(file.name);
-    } catch {
-      setError('Erro ao processar o arquivo de entradas.');
+    } catch (err) {
+      console.error('Erro ao processar entradas:', err);
+      setError(`Erro ao processar o arquivo de entradas: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoadingEntradas(false);
     }
