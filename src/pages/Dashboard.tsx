@@ -15,9 +15,10 @@ import { DRE_MAPEAMENTO } from '../utils/dreMapping';
 import { KPICard } from '../components/KPICard';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { TransactionModal } from '../components/TransactionModal';
+import { InfoTooltip } from '../components/InfoTooltip';
 import {
   TrendingDown, TrendingUp, Wallet, BarChart2,
-  ArrowLeftRight, Store, CreditCard, CalendarDays, Info,
+  ArrowLeftRight, Store, CreditCard, CalendarDays,
   GitCompare, ShoppingCart,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -29,7 +30,7 @@ interface Props {
 }
 
 // ─── Palettes ─────────────────────────────────────────────────────────────────
-const DESPESA_COLORS = [
+const SAIDA_COLORS = [
   '#f43f5e','#fb923c','#fbbf24','#a78bfa','#f472b6',
   '#e879f9','#fb7185','#fdba74','#fcd34d','#c4b5fd',
   '#f9a8d4','#86efac','#67e8f9','#93c5fd','#d8b4fe',
@@ -52,27 +53,6 @@ const rotuloFmt = (v: unknown) => {
   return n > 0 ? cfmt(n) : '';
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-function InfoTooltip({ text }: { text: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="relative inline-flex items-center">
-      <button
-        className="text-slate-300 hover:text-slate-500 transition-colors"
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-      >
-        <Info size={12} />
-      </button>
-      {show && (
-        <div className="absolute left-5 top-0 w-64 bg-slate-800 text-white text-[11px] rounded-xl p-3 z-50 shadow-xl leading-relaxed whitespace-normal">
-          {text}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function SectionTitle({
   icon, title, tooltip, badge,
 }: {
@@ -91,14 +71,14 @@ function SectionTitle({
   );
 }
 
-function TypeBadge({ type }: { type: 'despesa' | 'receita' }) {
-  return type === 'despesa' ? (
+function TypeBadge({ type }: { type: 'saida' | 'entrada' }) {
+  return type === 'saida' ? (
     <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />DESPESA
+      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />SAÍDA
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />RECEITA
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />ENTRADA
     </span>
   );
 }
@@ -141,7 +121,7 @@ function ComparisonPanel({
       <div className="flex items-center gap-2 mb-4">
         <GitCompare size={16} className="text-violet-500" />
         <h2 className="text-sm font-bold text-violet-700 uppercase tracking-wide">Comparativo de Períodos</h2>
-        <InfoTooltip text="Confronto direto entre os dois períodos selecionados. Variação = (P1 − P2) ÷ P2 × 100. Para despesas: ▲ = aumentou (atenção); ▼ = reduziu (positivo). Para receitas: ▲ = cresceu (positivo)." />
+        <InfoTooltip text="Confronto direto entre os dois períodos selecionados. Variação = (P1 − P2) ÷ P2 × 100. Para saídas: ▲ = aumentou (atenção); ▼ = reduziu (positivo). Para entradas: ▲ = cresceu (positivo)." />
       </div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
@@ -155,7 +135,7 @@ function ComparisonPanel({
       </div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-          <div className="flex items-center gap-1 mb-2"><TypeBadge type="despesa" /></div>
+          <div className="flex items-center gap-1 mb-2"><TypeBadge type="saida" /></div>
           <div className="flex items-end justify-between gap-2">
             <div>
               <p className="text-[10px] text-slate-400">P1</p>
@@ -170,13 +150,13 @@ function ComparisonPanel({
             <p className={`mt-2 text-xs font-bold ${varS > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
               {varS > 0 ? '▲' : '▼'} {Math.abs(varS).toFixed(1)}% vs P2
               <span className="text-[10px] font-normal text-slate-400 ml-1">
-                {varS > 0 ? '(despesas aumentaram)' : '(despesas reduziram)'}
+                {varS > 0 ? '(saídas aumentaram)' : '(saídas reduziram)'}
               </span>
             </p>
           )}
         </div>
         <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-          <div className="flex items-center gap-1 mb-2"><TypeBadge type="receita" /></div>
+          <div className="flex items-center gap-1 mb-2"><TypeBadge type="entrada" /></div>
           <div className="flex items-end justify-between gap-2">
             <div>
               <p className="text-[10px] text-slate-400">P1</p>
@@ -191,7 +171,7 @@ function ComparisonPanel({
             <p className={`mt-2 text-xs font-bold ${varE > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
               {varE > 0 ? '▲' : '▼'} {Math.abs(varE).toFixed(1)}% vs P2
               <span className="text-[10px] font-normal text-slate-400 ml-1">
-                {varE > 0 ? '(receitas cresceram)' : '(receitas reduziram)'}
+                {varE > 0 ? '(entradas cresceram)' : '(entradas reduziram)'}
               </span>
             </p>
           )}
@@ -226,18 +206,18 @@ function ComparisonPanel({
           <Legend wrapperStyle={{ fontSize: 11 }} />
           {(saidasCur.length > 0 || saidasPrev.length > 0) && (
             <>
-              <Bar dataKey="p1S" name="Despesas P1" fill="#f43f5e" radius={[4,4,0,0]}>
+              <Bar dataKey="p1S" name="Saídas P1" fill="#f43f5e" radius={[4,4,0,0]}>
                 <LabelList dataKey="p1S" position="top" formatter={rotuloFmt} style={{ fontSize: 8, fill: '#f43f5e', fontWeight: 700 }} />
               </Bar>
-              <Bar dataKey="p2S" name="Despesas P2" fill="#fca5a5" radius={[4,4,0,0]} />
+              <Bar dataKey="p2S" name="Saídas P2" fill="#fca5a5" radius={[4,4,0,0]} />
             </>
           )}
           {(entradasCur.length > 0 || entradasPrev.length > 0) && (
             <>
-              <Bar dataKey="p1E" name="Receitas P1" fill="#10b981" radius={[4,4,0,0]}>
+              <Bar dataKey="p1E" name="Entradas P1" fill="#10b981" radius={[4,4,0,0]}>
                 <LabelList dataKey="p1E" position="top" formatter={rotuloFmt} style={{ fontSize: 8, fill: '#10b981', fontWeight: 700 }} />
               </Bar>
-              <Bar dataKey="p2E" name="Receitas P2" fill="#86efac" radius={[4,4,0,0]} />
+              <Bar dataKey="p2E" name="Entradas P2" fill="#86efac" radius={[4,4,0,0]} />
             </>
           )}
         </BarChart>
@@ -378,22 +358,22 @@ export function Dashboard({ saidas, entradas }: Props) {
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard label="Total Despesas" value={totalSaidas}
+            <KPICard label="Total Saídas" value={totalSaidas}
               variation={calcVariation(totalSaidas, totalSaidasPrev)} format="currency"
-              tooltip={`Soma do campo 'V. Realizado' de todos os lançamentos de saída no período (${currentLabel}). Variação = (${fmtCurrency(totalSaidas)} − ${fmtCurrency(totalSaidasPrev)}) ÷ ${fmtCurrency(totalSaidasPrev)} × 100 = comparação com período anterior equivalente. ▲ = despesas aumentaram (atenção).`}
+              tooltip={`Soma do campo 'V. Realizado' de todos os lançamentos de saída no período (${currentLabel}). Variação = (${fmtCurrency(totalSaidas)} − ${fmtCurrency(totalSaidasPrev)}) ÷ ${fmtCurrency(totalSaidasPrev)} × 100 = comparação com período anterior equivalente. ▲ = saídas aumentaram (atenção).`}
               accent="text-rose-600" icon={<TrendingDown size={14} />}
             />
-            <KPICard label="Total Receitas" value={totalEntradas}
+            <KPICard label="Total Entradas" value={totalEntradas}
               variation={calcVariation(totalEntradas, totalEntradasPrev)} format="currency"
-              tooltip={`Soma do campo 'Total' do quadro de vendas no período (${currentLabel}). Variação = (${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalEntradasPrev)}) ÷ ${fmtCurrency(totalEntradasPrev)} × 100. ▲ = receitas cresceram (positivo).`}
+              tooltip={`Soma do campo 'Total' do quadro de vendas no período (${currentLabel}). Variação = (${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalEntradasPrev)}) ÷ ${fmtCurrency(totalEntradasPrev)} × 100. ▲ = entradas cresceram (positivo).`}
               accent="text-emerald-600" icon={<TrendingUp size={14} />}
             />
             <KPICard label="Saldo Operacional" value={saldo} format="currency"
-              tooltip={`Saldo = Receitas − Despesas = ${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalSaidas)} = ${fmtCurrency(saldo)}. Positivo: receitas cobrem as despesas (superávit). Negativo: despesas superam receitas (déficit — atenção ao caixa).`}
+              tooltip={`Saldo = Entradas − Saídas = ${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalSaidas)} = ${fmtCurrency(saldo)}. Positivo: entradas cobrem as saídas (superávit). Negativo: saídas superam entradas (déficit — atenção ao caixa).`}
               accent={saldo >= 0 ? 'text-emerald-600' : 'text-red-500'} icon={<Wallet size={14} />}
             />
             <KPICard label="Lançamentos" value={saidasCur.length + entradasCur.length} format="number"
-              tooltip={`Total de registros no período: ${saidasCur.length} lançamentos de despesa + ${entradasCur.length} dias de receita = ${saidasCur.length + entradasCur.length} registros.`}
+              tooltip={`Total de registros no período: ${saidasCur.length} lançamentos de saída + ${entradasCur.length} dias de entrada = ${saidasCur.length + entradasCur.length} registros.`}
               accent="text-violet-600" icon={<ArrowLeftRight size={14} />}
             />
           </div>
@@ -413,15 +393,15 @@ export function Dashboard({ saidas, entradas }: Props) {
             <div className="flex items-center gap-2 mb-3">
               <BarChart2 size={16} className="text-rose-500" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Evolução Temporal</h2>
-              <InfoTooltip text={`Linhas: Despesas (vermelho) e Receitas (verde) acumuladas por ${gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : 'mês'}. Barras: Saldo = Receitas − Despesas. Verde ↑ = superávit naquele intervalo. Vermelho ↓ = déficit. Rótulos visíveis quando há ≤ 14 pontos.`} />
+              <InfoTooltip text={`Linhas: Saídas (vermelho) e Entradas (verde) acumuladas por ${gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : 'mês'}. Barras: Saldo = Entradas − Saídas. Verde ↑ = superávit naquele intervalo. Vermelho ↓ = déficit. Rótulos visíveis quando há ≤ 14 pontos.`} />
               <span className="ml-auto text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
                 Agrupado por {gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : gran === 'mes' ? 'mês' : 'trimestre'}
               </span>
             </div>
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-4 mb-3 text-[11px] text-slate-500">
-              {saidas.length > 0 && <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-rose-500 inline-block rounded" />Despesas (Saídas)</span>}
-              {entradas.length > 0 && <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" />Receitas (Vendas)</span>}
+              {saidas.length > 0 && <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-rose-500 inline-block rounded" />Saídas</span>}
+              {entradas.length > 0 && <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-emerald-500 inline-block rounded" />Entradas (Vendas)</span>}
               {saidas.length > 0 && entradas.length > 0 && (
                 <>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400/60 inline-block" />Saldo positivo (↑)</span>
@@ -488,12 +468,12 @@ export function Dashboard({ saidas, entradas }: Props) {
                 )}
 
                 {saidas.length > 0 && (
-                  <Line type="monotone" dataKey="saidas" name="Despesas" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none">
+                  <Line type="monotone" dataKey="saidas" name="Saídas" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none">
                     {showLabels && <LabelList dataKey="saidas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fill: '#f43f5e', fontWeight: 700 }} />}
                   </Line>
                 )}
                 {entradas.length > 0 && (
-                  <Line type="monotone" dataKey="entradas" name="Receitas" stroke="#10b981" strokeWidth={2.5} dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none">
+                  <Line type="monotone" dataKey="entradas" name="Entradas" stroke="#10b981" strokeWidth={2.5} dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none">
                     {showLabels && <LabelList dataKey="entradas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fill: '#10b981', fontWeight: 700 }} />}
                   </Line>
                 )}
@@ -506,17 +486,17 @@ export function Dashboard({ saidas, entradas }: Props) {
             <div className="flex items-center gap-2 mb-1">
               <CalendarDays size={16} className="text-rose-500" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Distribuição por Dia da Semana</h2>
-              <InfoTooltip text="Soma acumulada no período selecionado por dia da semana. Permite identificar os dias com maior volume de receitas ou despesas. Cálculo: soma de V. Realizado de todos os lançamentos que caem naquele dia da semana no período." />
+              <InfoTooltip text="Soma acumulada no período selecionado por dia da semana. Permite identificar os dias com maior volume de entradas ou saídas. Cálculo: soma de V. Realizado de todos os lançamentos que caem naquele dia da semana no período." />
             </div>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-[11px] text-slate-400">Destacar:</span>
               <button onClick={() => setDowSource('entradas')}
                 className={`text-[11px] font-semibold px-3 py-1 rounded-lg border transition-all ${dowSource === 'entradas' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'text-slate-400 border-slate-200 hover:border-slate-300'}`}>
-                Receitas (Vendas)
+                Entradas (Vendas)
               </button>
               <button onClick={() => setDowSource('saidas')}
                 className={`text-[11px] font-semibold px-3 py-1 rounded-lg border transition-all ${dowSource === 'saidas' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'text-slate-400 border-slate-200 hover:border-slate-300'}`}>
-                Despesas (Saídas)
+                Saídas
               </button>
             </div>
             <ResponsiveContainer width="100%" height={190}>
@@ -547,12 +527,12 @@ export function Dashboard({ saidas, entradas }: Props) {
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {entradas.length > 0 && (
-                  <Bar dataKey="vendas" name="Receitas (Vendas)" radius={[5,5,0,0]} fill={dowSource === 'entradas' ? '#10b981' : '#d1fae5'}>
+                  <Bar dataKey="vendas" name="Entradas (Vendas)" radius={[5,5,0,0]} fill={dowSource === 'entradas' ? '#10b981' : '#d1fae5'}>
                     {dowSource === 'entradas' && <LabelList dataKey="vendas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#059669' }} />}
                   </Bar>
                 )}
                 {saidas.length > 0 && (
-                  <Bar dataKey="despesas" name="Despesas (Saídas)" radius={[5,5,0,0]} fill={dowSource === 'saidas' ? '#f43f5e' : '#fecdd3'}>
+                  <Bar dataKey="despesas" name="Saídas" radius={[5,5,0,0]} fill={dowSource === 'saidas' ? '#f43f5e' : '#fecdd3'}>
                     {dowSource === 'saidas' && <LabelList dataKey="despesas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#e11d48' }} />}
                   </Bar>
                 )}
@@ -560,7 +540,7 @@ export function Dashboard({ saidas, entradas }: Props) {
             </ResponsiveContainer>
           </div>
 
-          {/* Despesas por categoria DRE — OPEX e SGA separados */}
+          {/* Saídas por categoria DRE — OPEX e SGA separados */}
           {saidas.length > 0 && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {/* OPEX */}
@@ -568,9 +548,9 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <BarChart2 size={15} className="text-rose-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Despesas Operacionais (OPEX)</h2>
-                    <TypeBadge type="despesa" />
-                    <InfoTooltip text="Naturezas classificadas como DESPESA_OPERACIONAL no mapeamento DRE: pessoal, ocupação, utilidades, marketing, logística, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
+                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Operacionais (OPEX)</h2>
+                    <TypeBadge type="saida" />
+                    <InfoTooltip text="Saídas classificadas como Operacionais no mapeamento DRE: pessoal, ocupação, utilidades, marketing, logística, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(240, opexNat.slice(0, 10).length * 30)}>
                     <BarChart
@@ -592,8 +572,8 @@ export function Dashboard({ saidas, entradas }: Props) {
                       <Tooltip content={({ active, payload, label }) =>
                         active && payload?.length ? (
                           <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="despesa" /><span className="font-semibold text-slate-700">{label}</span></div>
-                            <p className="text-[10px] text-slate-400 mb-1">OPEX — Despesa Operacional</p>
+                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="saida" /><span className="font-semibold text-slate-700">{label}</span></div>
+                            <p className="text-[10px] text-slate-400 mb-1">OPEX — Saída Operacional</p>
                             <p className="font-bold text-rose-600">{fmtCurrency(payload[0].value as number)}</p>
                             {(payload[0].payload as { previousTotal: number }).previousTotal > 0 && (() => {
                               const cur = payload[0].value as number;
@@ -607,7 +587,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                       } />
                       <Bar dataKey="total" name="OPEX" radius={[0, 5, 5, 0]}>
                         {opexNat.slice(0, 10).map((_, idx) => (
-                          <Cell key={idx} fill={DESPESA_COLORS[idx % DESPESA_COLORS.length]} />
+                          <Cell key={idx} fill={SAIDA_COLORS[idx % SAIDA_COLORS.length]} />
                         ))}
                         <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
                       </Bar>
@@ -621,9 +601,9 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <BarChart2 size={15} className="text-violet-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Despesas Administrativas (SG&A)</h2>
-                    <TypeBadge type="despesa" />
-                    <InfoTooltip text="Naturezas classificadas como DESPESA_ADMINISTRATIVA no mapeamento DRE: contabilidade, TI, frota, viagens, associações, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
+                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Administrativas (SG&A)</h2>
+                    <TypeBadge type="saida" />
+                    <InfoTooltip text="Saídas classificadas como Administrativas no mapeamento DRE: contabilidade, TI, frota, viagens, associações, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(240, sgaNat.slice(0, 10).length * 30)}>
                     <BarChart
@@ -645,8 +625,8 @@ export function Dashboard({ saidas, entradas }: Props) {
                       <Tooltip content={({ active, payload, label }) =>
                         active && payload?.length ? (
                           <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="despesa" /><span className="font-semibold text-slate-700">{label}</span></div>
-                            <p className="text-[10px] text-slate-400 mb-1">SG&A — Despesa Administrativa</p>
+                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="saida" /><span className="font-semibold text-slate-700">{label}</span></div>
+                            <p className="text-[10px] text-slate-400 mb-1">SG&A — Saída Administrativa</p>
                             <p className="font-bold text-violet-600">{fmtCurrency(payload[0].value as number)}</p>
                             {(payload[0].payload as { previousTotal: number }).previousTotal > 0 && (() => {
                               const cur = payload[0].value as number;
@@ -674,9 +654,9 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 xl:col-span-2">
                   <div className="flex items-center gap-2 mb-3">
                     <BarChart2 size={15} className="text-rose-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Despesas por Natureza</h2>
-                    <TypeBadge type="despesa" />
-                    <InfoTooltip text="Top 12 naturezas de despesa. Para ver separado por OPEX e SG&A, importe a base de saídas com as naturezas do mapeamento DRE." />
+                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas por Natureza</h2>
+                    <TypeBadge type="saida" />
+                    <InfoTooltip text="Top 12 naturezas de saída. Para ver separado por OPEX e SG&A, importe a base de saídas com as naturezas do mapeamento DRE." />
                   </div>
                   <ResponsiveContainer width="100%" height={360}>
                     <BarChart data={saidasNat.slice(0, 12)} layout="vertical" margin={{ top: 4, right: 90, left: 8, bottom: 4 }}
@@ -686,8 +666,8 @@ export function Dashboard({ saidas, entradas }: Props) {
                       <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <YAxis type="category" dataKey="natureza" width={160} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v: unknown) => { const s = String(v); return s.length > 23 ? s.slice(0, 23) + '…' : s; }} />
                       <Tooltip />
-                      <Bar dataKey="total" name="Despesas" radius={[0, 6, 6, 0]}>
-                        {saidasNat.slice(0, 12).map((_, idx) => <Cell key={idx} fill={DESPESA_COLORS[idx % DESPESA_COLORS.length]} />)}
+                      <Bar dataKey="total" name="Saídas" radius={[0, 6, 6, 0]}>
+                        {saidasNat.slice(0, 12).map((_, idx) => <Cell key={idx} fill={SAIDA_COLORS[idx % SAIDA_COLORS.length]} />)}
                         <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
                       </Bar>
                     </BarChart>
@@ -700,9 +680,9 @@ export function Dashboard({ saidas, entradas }: Props) {
           {/* Conta + Fornecedores */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-              <SectionTitle icon={<CreditCard size={16} />} title="Despesas por Conta Bancária"
-                badge={<TypeBadge type="despesa" />}
-                tooltip={`Soma das despesas realizadas por cada conta de débito no período. Cálculo: soma de V. Realizado agrupada pelo campo 'Conta'. Permite identificar qual conta concentra mais pagamentos. Total no período: ${fmtCurrency(totalSaidas)}.`}
+              <SectionTitle icon={<CreditCard size={16} />} title="Saídas por Conta Bancária"
+                badge={<TypeBadge type="saida" />}
+                tooltip={`Soma das saídas realizadas por cada conta de débito no período. Cálculo: soma de V. Realizado agrupada pelo campo 'Conta'. Permite identificar qual conta concentra mais pagamentos. Total no período: ${fmtCurrency(totalSaidas)}.`}
               />
               <ResponsiveContainer width="100%" height={190}>
                 <BarChart data={contaTotals} margin={{ top: 20, right: 70, left: 8, bottom: 5 }}>
@@ -715,20 +695,20 @@ export function Dashboard({ saidas, entradas }: Props) {
                     content={({ active, payload, label }) =>
                       active && payload?.length ? (
                         <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[180px]">
-                          <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="despesa" /></div>
+                          <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="saida" /></div>
                           <p className="font-semibold text-slate-700">{label}</p>
                           <p className="font-bold text-rose-600">{fmtCurrency(payload[0].value as number)}</p>
                           <p className="text-slate-500 mt-1">
-                            {totalSaidas > 0 ? (((payload[0].value as number) / totalSaidas) * 100).toFixed(1) : '0'}% do total de despesas
+                            {totalSaidas > 0 ? (((payload[0].value as number) / totalSaidas) * 100).toFixed(1) : '0'}% do total de saídas
                           </p>
                           <p className="text-[10px] text-slate-400 mt-1">Cálculo: soma de V. Realizado onde Conta = "{label}"</p>
                         </div>
                       ) : null
                     }
                   />
-                  <Bar dataKey="total" name="Despesas" radius={[6,6,0,0]}>
+                  <Bar dataKey="total" name="Saídas" radius={[6,6,0,0]}>
                     {contaTotals.map((_, idx) => (
-                      <Cell key={idx} fill={DESPESA_COLORS[idx % DESPESA_COLORS.length]} />
+                      <Cell key={idx} fill={SAIDA_COLORS[idx % SAIDA_COLORS.length]} />
                     ))}
                     <LabelList dataKey="total" position="top" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 700, fill: '#475569' }} />
                   </Bar>
@@ -739,7 +719,7 @@ export function Dashboard({ saidas, entradas }: Props) {
             {/* Fornecedores de Mercadoria */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <SectionTitle icon={<ShoppingCart size={16} />} title="Fornecedores de Mercadoria"
-                badge={<TypeBadge type="despesa" />}
+                badge={<TypeBadge type="saida" />}
                 tooltip={`Fornecedores com natureza 'COMPRA DE MERCADORIAS'. Mostra quem fornece o estoque da loja. Clique para ver os lançamentos individuais.`}
               />
               <div className="space-y-2 overflow-y-auto max-h-52">
@@ -782,8 +762,8 @@ export function Dashboard({ saidas, entradas }: Props) {
               <div className="flex items-center gap-2">
                 <Store size={16} className="text-rose-500" />
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Detalhamento por Natureza</h2>
-                <TypeBadge type="despesa" />
-                <InfoTooltip text="Top 15 categorias de despesa do período atual. Clique em uma linha para ver os lançamentos individuais. Variação = (Atual − Anterior) ÷ Anterior × 100. ▲ vermelho = custo cresceu (atenção). ▼ verde = custo reduziu (economia). % Total = valor desta natureza ÷ total de saídas × 100." />
+                <TypeBadge type="saida" />
+                <InfoTooltip text="Top 15 categorias de saída do período atual. Clique em uma linha para ver os lançamentos individuais. Variação = (Atual − Anterior) ÷ Anterior × 100. ▲ vermelho = saída cresceu (atenção). ▼ verde = saída reduziu (economia). % Total = valor desta natureza ÷ total de saídas × 100." />
               </div>
               <span className="text-[10px] text-slate-400">Top 15 · Clique para detalhar</span>
             </div>
@@ -792,7 +772,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-slate-100">
                     <th className="text-left py-2 px-2 text-slate-500 font-semibold">
-                      <span className="flex items-center gap-1">Natureza <InfoTooltip text="Categoria da despesa conforme campo 'Natureza' da planilha de Contas a Pagar." /></span>
+                      <span className="flex items-center gap-1">Natureza <InfoTooltip text="Categoria da saída conforme campo 'Natureza' da planilha de Contas a Pagar." /></span>
                     </th>
                     <th className="text-right py-2 px-2 text-slate-500 font-semibold">
                       <span className="inline-flex items-center gap-1">Qtd. <InfoTooltip text="Número de lançamentos individuais nesta natureza no período." /></span>
@@ -804,10 +784,10 @@ export function Dashboard({ saidas, entradas }: Props) {
                       <span className="inline-flex items-center gap-1">Anterior <InfoTooltip text="Soma de V. Realizado no período equivalente anterior (ex: mês passado se filtro = Mês)." /></span>
                     </th>
                     <th className="text-right py-2 px-2 text-slate-500 font-semibold">
-                      <span className="inline-flex items-center gap-1">Variação <InfoTooltip text="(Atual − Anterior) ÷ Anterior × 100. ▲ = custo cresceu. ▼ = custo reduziu." /></span>
+                      <span className="inline-flex items-center gap-1">Variação <InfoTooltip text="(Atual − Anterior) ÷ Anterior × 100. ▲ = saída cresceu. ▼ = saída reduziu." /></span>
                     </th>
                     <th className="text-right py-2 px-2 text-slate-500 font-semibold">
-                      <span className="inline-flex items-center gap-1">% Total <InfoTooltip text="Participação no total de despesas do período. Fórmula: valor desta natureza ÷ total saídas × 100." /></span>
+                      <span className="inline-flex items-center gap-1">% Total <InfoTooltip text="Participação no total de saídas do período. Fórmula: valor desta natureza ÷ total saídas × 100." /></span>
                     </th>
                   </tr>
                 </thead>
@@ -823,7 +803,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                       >
                         <td className="py-1.5 px-2 font-medium text-slate-700">
                           <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: DESPESA_COLORS[idx % DESPESA_COLORS.length] }} />
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: SAIDA_COLORS[idx % SAIDA_COLORS.length] }} />
                             {n.natureza}
                           </span>
                         </td>
@@ -843,7 +823,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                         </td>
                         <td className="py-1.5 px-2 text-right">
                           <span className="text-slate-600 font-medium">{n.percentual.toFixed(1)}%</span>
-                          <span className="text-slate-400 text-[10px] ml-1">das despesas</span>
+                          <span className="text-slate-400 text-[10px] ml-1">das saídas</span>
                         </td>
                       </tr>
                     );
@@ -865,7 +845,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                     </td>
                     <td className="py-2 px-2 text-right font-bold text-slate-700">
                       {saidasNat.slice(0,15).reduce((a,n)=>a+n.percentual,0).toFixed(1)}%
-                      <span className="text-slate-400 text-[10px] ml-1">das despesas</span>
+                      <span className="text-slate-400 text-[10px] ml-1">das saídas</span>
                     </td>
                   </tr>
                 </tfoot>

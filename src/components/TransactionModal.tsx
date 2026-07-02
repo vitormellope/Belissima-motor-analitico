@@ -43,12 +43,12 @@ export function TransactionModal({ title, subtitle, transactions, onClose }: Pro
               {type === 'saidas' ? (
                 <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
-                  DESPESA
+                  SAÍDA
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  RECEITA
+                  ENTRADA
                 </span>
               )}
             </div>
@@ -90,7 +90,7 @@ export function TransactionModal({ title, subtitle, transactions, onClose }: Pro
                 const diff = t.vRealizado - t.vPrevisto;
                 return (
                   <tr
-                    key={t.numero + '-' + idx}
+                    key={idx}
                     className={`border-b border-slate-50 ${idx % 2 === 0 ? '' : 'bg-slate-50/50'}`}
                   >
                     <td className="py-2 px-4 text-slate-600 whitespace-nowrap">

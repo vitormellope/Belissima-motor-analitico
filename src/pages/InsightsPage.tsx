@@ -167,35 +167,35 @@ export function InsightsPage({ saidas, entradas }: Props) {
     const list: Alert[] = [];
 
     if (totalReceita === 0) {
-      list.push({ level: 'warn', title: 'Sem dados de receita', body: 'Importe a planilha de entradas para ver análise completa de margens.' });
+      list.push({ level: 'warn', title: 'Sem dados de entrada', body: 'Importe a planilha de entradas para ver análise completa de margens.' });
       return list;
     }
 
     if (margBruta < 40)
-      list.push({ level: 'critical', title: `Margem Bruta em ${fmtPct(margBruta)} — abaixo do aceitável`, body: `Para varejo de moda, a margem bruta ideal é acima de 50%. O CMV está consumindo ${fmtPct(cmvRatio)} da receita. Revise markup de produto ou mix de mercadoria.` });
+      list.push({ level: 'critical', title: `Margem Bruta em ${fmtPct(margBruta)} — abaixo do aceitável`, body: `Para varejo de moda, a margem bruta ideal é acima de 50%. O CMV está consumindo ${fmtPct(cmvRatio)} da entrada. Revise markup de produto ou mix de mercadoria.` });
     else if (margBruta < BENCH.margBruta)
       list.push({ level: 'warn', title: `Margem Bruta em ${fmtPct(margBruta)} — pode melhorar`, body: `Você está ${(BENCH.margBruta - margBruta).toFixed(1)}pp abaixo do benchmark. Cada ponto percentual de margem bruta recuperado representa ${fmtCurrency((totalReceita * 0.01))} de lucro adicional.` });
 
     if (margEbita < 0)
-      list.push({ level: 'critical', title: `EBITA negativo (${fmtPct(margEbita)}) — operação no prejuízo`, body: `As despesas operacionais e administrativas superam o lucro bruto. A loja gasta mais para funcionar do que ganha com a venda das peças.` });
+      list.push({ level: 'critical', title: `EBITA negativo (${fmtPct(margEbita)}) — operação no prejuízo`, body: `As saídas operacionais e administrativas superam o lucro bruto. A loja gasta mais para funcionar do que ganha com a venda das peças.` });
     else if (margEbita < 5)
-      list.push({ level: 'warn', title: `EBITA em ${fmtPct(margEbita)} — margem estreita`, body: `Qualquer variação de receita ou aumento de custo vira prejuízo. O ideal para varejo saudável é 10-15%.` });
+      list.push({ level: 'warn', title: `EBITA em ${fmtPct(margEbita)} — margem estreita`, body: `Qualquer variação de entrada ou aumento de saída vira prejuízo. O ideal para varejo saudável é 10-15%.` });
 
     if (opexRatio > 35)
-      list.push({ level: 'critical', title: `OPEX em ${fmtPct(opexRatio)} da receita — muito pesado`, body: `Despesas operacionais (pessoal, aluguel, utilidades) estão consumindo mais de 35% do faturamento. Revise estrutura de pessoal e contratos fixos.` });
+      list.push({ level: 'critical', title: `OPEX em ${fmtPct(opexRatio)} da entrada — muito pesado`, body: `Saídas operacionais (pessoal, aluguel, utilidades) estão consumindo mais de 35% do faturamento. Revise estrutura de pessoal e contratos fixos.` });
     else if (opexRatio > BENCH.opexRatio)
-      list.push({ level: 'warn', title: `OPEX em ${fmtPct(opexRatio)} — acima do benchmark`, body: `Benchmark para varejo de moda é ${fmtPct(BENCH.opexRatio)}. Diferença de ${(opexRatio - BENCH.opexRatio).toFixed(1)}pp representa ${fmtCurrency(totalReceita * (opexRatio - BENCH.opexRatio) / 100)} em custos acima do esperado.` });
+      list.push({ level: 'warn', title: `OPEX em ${fmtPct(opexRatio)} — acima do benchmark`, body: `Benchmark para varejo de moda é ${fmtPct(BENCH.opexRatio)}. Diferença de ${(opexRatio - BENCH.opexRatio).toFixed(1)}pp representa ${fmtCurrency(totalReceita * (opexRatio - BENCH.opexRatio) / 100)} em saídas acima do esperado.` });
 
     if (revTrend !== null && revTrend < -10)
-      list.push({ level: 'critical', title: `Receita caindo ${fmtPct(Math.abs(revTrend))} nos últimos meses`, body: `A média mensal dos últimos 3 meses é ${fmtPct(Math.abs(revTrend))} menor que os 3 meses anteriores. Tendência de queda consistente exige ação imediata.` });
+      list.push({ level: 'critical', title: `Entrada caindo ${fmtPct(Math.abs(revTrend))} nos últimos meses`, body: `A média mensal dos últimos 3 meses é ${fmtPct(Math.abs(revTrend))} menor que os 3 meses anteriores. Tendência de queda consistente exige ação imediata.` });
     else if (revTrend !== null && revTrend < -3)
-      list.push({ level: 'warn', title: `Receita com tendência de queda`, body: `Queda de ${fmtPct(Math.abs(revTrend))} na média mensal. Fique de olho nos próximos meses.` });
+      list.push({ level: 'warn', title: `Entrada com tendência de queda`, body: `Queda de ${fmtPct(Math.abs(revTrend))} na média mensal. Fique de olho nos próximos meses.` });
 
     if (mesesNeg > 0 && nMonths > 0)
       list.push({ level: mesesNeg > nMonths / 2 ? 'critical' : 'warn', title: `${mesesNeg} de ${nMonths} ${nMonths === 1 ? 'mês' : 'meses'} com resultado negativo`, body: `${mesesNeg === 1 ? 'Um mês' : `${mesesNeg} meses`} fechou${mesesNeg > 1 ? 'ram' : ''} no vermelho. Avalie se há sazonalidade ou se é tendência.` });
 
     if (totalCAPEX > 0 && pct(totalCAPEX, totalReceita) > 10)
-      list.push({ level: 'warn', title: `CAPEX alto: ${fmtPct(pct(totalCAPEX, totalReceita))} da receita em investimentos`, body: `Período com investimento relevante em equipamentos. Certifique-se de que o retorno esperado está mapeado.` });
+      list.push({ level: 'warn', title: `CAPEX alto: ${fmtPct(pct(totalCAPEX, totalReceita))} da entrada em investimentos`, body: `Período com investimento relevante em equipamentos. Certifique-se de que o retorno esperado está mapeado.` });
 
     if (list.length === 0)
       list.push({ level: 'ok', title: 'Operação dentro dos parâmetros esperados', body: 'Nenhum alerta crítico identificado. Mantenha o acompanhamento mensal para detectar desvios antes que se tornem problemas.' });
@@ -205,10 +205,10 @@ export function InsightsPage({ saidas, entradas }: Props) {
 
   // ── Perguntas estratégicas ────────────────────────────────────────────────
   const questions = [
-    { q: 'Você sabe o custo real por peça vendida — incluindo frete, embalagem e mão de obra?', tag: 'CMV' },
+    { q: 'Você sabe a saída real por peça vendida — incluindo frete, embalagem e mão de obra?', tag: 'CMV' },
     { q: 'Qual categoria de produto tem a maior margem bruta? Você está vendendo mais dela?', tag: 'Produto' },
-    { q: `Nos ${mesesNeg > 0 ? mesesNeg : 'eventuais'} meses negativos, o que aconteceu? Sazonalidade ou custo pontual?`, tag: 'Resultado' },
-    { q: 'Seu maior custo fixo cresceu mais rápido que a receita nos últimos 3 meses?', tag: 'OPEX' },
+    { q: `Nos ${mesesNeg > 0 ? mesesNeg : 'eventuais'} meses negativos, o que aconteceu? Sazonalidade ou saída pontual?`, tag: 'Resultado' },
+    { q: 'Sua maior saída fixa cresceu mais rápido que a entrada nos últimos 3 meses?', tag: 'OPEX' },
     { q: 'A retirada de sócios está compatível com o caixa gerado pelo negócio?', tag: 'Caixa' },
   ];
 
@@ -249,7 +249,7 @@ export function InsightsPage({ saidas, entradas }: Props) {
               <p className="text-2xl font-black leading-tight" style={{ color: sl.color }}>{sl.text}</p>
               <p className="text-[11px] opacity-60 mt-1">
                 {nMonths > 0 ? `${nMonths} ${nMonths === 1 ? 'mês' : 'meses'} analisados` : 'Dados carregados'}
-                {totalReceita > 0 ? ` · ${fmtCurrency(totalReceita)} em receita` : ''}
+                {totalReceita > 0 ? ` · ${fmtCurrency(totalReceita)} em entrada` : ''}
               </p>
             </div>
           </div>
@@ -283,10 +283,10 @@ export function InsightsPage({ saidas, entradas }: Props) {
           </div>
           <div className="flex flex-col gap-2">
             {[
-              { label: 'Custo de Mercadoria (CMV)',  val: cmvRatio,   color: '#f43f5e', bench: BENCH.cmvRatio,   invertido: true,  icon: '📦' },
-              { label: 'Despesas Operacionais (OPEX)', val: opexRatio, color: '#fb923c', bench: BENCH.opexRatio,  invertido: true,  icon: '🏪' },
-              { label: 'Desp. Administrativas (SGA)', val: sgaRatio,  color: '#a78bfa', bench: BENCH.sgaRatio,   invertido: true,  icon: '💼' },
-              { label: 'Despesas Financeiras',        val: finRatio,  color: '#94a3b8', bench: 3,                invertido: true,  icon: '🏦' },
+              { label: 'Saída com Mercadoria (CMV)',  val: cmvRatio,   color: '#f43f5e', bench: BENCH.cmvRatio,   invertido: true,  icon: '📦' },
+              { label: 'Saídas Operacionais (OPEX)', val: opexRatio, color: '#fb923c', bench: BENCH.opexRatio,  invertido: true,  icon: '🏪' },
+              { label: 'Saídas Administrativas (SGA)', val: sgaRatio,  color: '#a78bfa', bench: BENCH.sgaRatio,   invertido: true,  icon: '💼' },
+              { label: 'Saídas Financeiras',        val: finRatio,  color: '#94a3b8', bench: 3,                invertido: true,  icon: '🏦' },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-3">
                 <span className="text-base w-6 text-center shrink-0">{item.icon}</span>
@@ -332,7 +332,7 @@ export function InsightsPage({ saidas, entradas }: Props) {
         </div>
       )}
 
-      {/* ── Grid: Alertas + Top custos ──────────────────────────────────────── */}
+      {/* ── Grid: Alertas + Top saídas ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
         {/* Alertas */}
@@ -346,11 +346,11 @@ export function InsightsPage({ saidas, entradas }: Props) {
           </div>
         </div>
 
-        {/* Top custos */}
+        {/* Top saídas */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <Target size={15} className="text-rose-500" />
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Maiores Custos do Período</h2>
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Maiores Saídas do Período</h2>
           </div>
           <div className="space-y-2.5">
             {topDespesas.map((d, i) => (
@@ -367,7 +367,7 @@ export function InsightsPage({ saidas, entradas }: Props) {
                       style={{ width: `${d.pct}%` }}
                     />
                   </div>
-                  <p className="text-[9px] text-slate-400 mt-0.5">{d.pct.toFixed(1)}% das despesas totais</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">{d.pct.toFixed(1)}% das saídas totais</p>
                 </div>
               </div>
             ))}
@@ -396,7 +396,7 @@ export function InsightsPage({ saidas, entradas }: Props) {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-2 px-3 text-slate-500 font-semibold">Mês</th>
-                  <th className="text-right py-2 px-3 text-slate-500 font-semibold">Receita</th>
+                  <th className="text-right py-2 px-3 text-slate-500 font-semibold">Entrada</th>
                   <th className="text-right py-2 px-3 text-slate-500 font-semibold">Resultado</th>
                   <th className="text-right py-2 px-3 text-slate-500 font-semibold">Marg. Resultado</th>
                   <th className="text-center py-2 px-3 text-slate-500 font-semibold">Tendência</th>

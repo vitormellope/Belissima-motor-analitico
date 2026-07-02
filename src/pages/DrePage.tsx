@@ -155,7 +155,7 @@ export function DrePage({ saidas, entradas }: Props) {
   const resultado = L(17)?.total ?? 0;
 
   const pct = (v: number) =>
-    receitaBruta > 0 ? ` (${((v / receitaBruta) * 100).toFixed(1)}% da receita)` : '';
+    receitaBruta > 0 ? ` (${((v / receitaBruta) * 100).toFixed(1)}% da entrada)` : '';
 
   // Compute MoM variation for a given month value vs previous
   const momVariation = (months: Record<string, number>, mkIdx: number): number | null => {
@@ -186,7 +186,7 @@ export function DrePage({ saidas, entradas }: Props) {
     <div className="space-y-4">
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPI label="Receita Bruta" value={receitaBruta} />
+        <KPI label="Entrada Bruta" value={receitaBruta} />
         <KPI label="Lucro Bruto" value={lucroBruto} sub={pct(lucroBruto)} />
         <KPI label="EBITA" value={ebita} sub={pct(ebita)} />
         <KPI label="Resultado do Mês" value={resultado} sub={pct(resultado)} />
@@ -240,7 +240,7 @@ export function DrePage({ saidas, entradas }: Props) {
                 <th className="text-right py-2.5 px-4 text-slate-500 font-semibold min-w-[130px] border-r border-slate-100">
                   Total
                 </th>
-                {/* % Receita (total acumulado) */}
+                {/* % Entrada (total acumulado) */}
                 <th className="text-right py-2.5 px-3 text-indigo-500 font-semibold w-20 border-r border-slate-100">
                   % Total
                 </th>
@@ -302,7 +302,7 @@ export function DrePage({ saidas, entradas }: Props) {
                     <td className={`py-2.5 px-4 text-right font-semibold border-r border-slate-100/30 ${isSubtotal ? subtotalValueColor(line.total) : ''}`}>
                       {line.total === 0 && !isSubtotal ? <span className="opacity-30">—</span> : fmtCurrency(line.total)}
                     </td>
-                    {/* % da Receita */}
+                    {/* % da Entrada */}
                     <td className={`py-2.5 px-3 text-right border-r border-slate-100/30 ${isSubtotal ? 'text-indigo-200' : 'text-indigo-500'}`}>
                       {receitaBruta > 0 && line.total !== 0
                         ? <span className="text-[11px] font-semibold">{((line.total / receitaBruta) * 100).toFixed(1)}%</span>
@@ -359,7 +359,7 @@ export function DrePage({ saidas, entradas }: Props) {
                         </td>
                         {/* Total */}
                         <td className="py-1.5 px-4 text-right border-r border-slate-100/20">{fmtVal(g.total)}</td>
-                        {/* % da Receita */}
+                        {/* % da Entrada */}
                         <td className="py-1.5 px-3 text-right border-r border-slate-100/20 text-indigo-400">
                           {receitaBruta > 0 && g.total !== 0
                             ? <span className="text-[10px]">{((g.total / receitaBruta) * 100).toFixed(1)}%</span>

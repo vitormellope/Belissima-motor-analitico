@@ -21,7 +21,7 @@ const MARGIN_DEFS = [
     color: '#10b981',
     bg: 'bg-emerald-500',
     ring: 'ring-emerald-200',
-    tooltip: 'Linha 5 do DRE.\nFórmula: Receita Líquida (L3) − CMV (L4)\nMargem = Lucro Bruto ÷ Receita Bruta × 100\nRepresenta quanto sobra da receita após pagar o custo direto das mercadorias vendidas.',
+    tooltip: 'Linha 5 do DRE.\nFórmula: Entrada Líquida (L3) − CMV (L4)\nMargem = Lucro Bruto ÷ Entrada Bruta × 100\nRepresenta quanto sobra da entrada após pagar a saída direta com as mercadorias vendidas.',
   },
   {
     linha: 7,
@@ -29,7 +29,7 @@ const MARGIN_DEFS = [
     color: '#3b82f6',
     bg: 'bg-blue-500',
     ring: 'ring-blue-200',
-    tooltip: 'Linha 7 do DRE.\nFórmula: Lucro Bruto (L5) − OPEX (L6)\nMargem = Lucro Operacional Bruto ÷ Receita Bruta × 100\nMostra o resultado após descontar todas as despesas operacionais da loja (pessoal, aluguel, utilidades, etc.).',
+    tooltip: 'Linha 7 do DRE.\nFórmula: Lucro Bruto (L5) − OPEX (L6)\nMargem = Lucro Operacional Bruto ÷ Entrada Bruta × 100\nMostra o resultado após descontar todas as saídas operacionais da loja (pessoal, aluguel, utilidades, etc.).',
   },
   {
     linha: 9,
@@ -37,7 +37,7 @@ const MARGIN_DEFS = [
     color: '#8b5cf6',
     bg: 'bg-violet-500',
     ring: 'ring-violet-200',
-    tooltip: 'Linha 9 do DRE.\nFórmula: Lucro Operacional Bruto (L7) − SG&A (L8)\nMargem = EBITA ÷ Receita Bruta × 100\nResultado antes de tributos e despesas financeiras. Mede a eficiência da operação completa.',
+    tooltip: 'Linha 9 do DRE.\nFórmula: Lucro Operacional Bruto (L7) − SG&A (L8)\nMargem = EBITA ÷ Entrada Bruta × 100\nResultado antes de tributos e saídas financeiras. Mede a eficiência da operação completa.',
   },
   {
     linha: 12,
@@ -45,7 +45,7 @@ const MARGIN_DEFS = [
     color: '#f59e0b',
     bg: 'bg-amber-500',
     ring: 'ring-amber-200',
-    tooltip: 'Linha 12 do DRE.\nFórmula: EBITA (L9) − IR/CSLL (L10) − Despesas Financeiras (L11)\nMargem = Lucro Líquido ÷ Receita Bruta × 100\nLucro após todos os impostos e encargos financeiros.',
+    tooltip: 'Linha 12 do DRE.\nFórmula: EBITA (L9) − IR/CSLL (L10) − Saídas Financeiras (L11)\nMargem = Lucro Líquido ÷ Entrada Bruta × 100\nLucro após todos os impostos e encargos financeiros.',
   },
   {
     linha: 17,
@@ -53,7 +53,7 @@ const MARGIN_DEFS = [
     color: '#f43f5e',
     bg: 'bg-rose-500',
     ring: 'ring-rose-200',
-    tooltip: 'Linha 17 do DRE.\nFórmula: Lucro Líquido (L12) − CAPEX (L13) − Dividendos (L14) − Outras Saídas (L16)\nMargem = Resultado ÷ Receita Bruta × 100\nResultado final do período, considerando todos os desembolsos incluindo investimentos e retiradas.',
+    tooltip: 'Linha 17 do DRE.\nFórmula: Lucro Líquido (L12) − CAPEX (L13) − Dividendos (L14) − Outras Saídas (L16)\nMargem = Resultado ÷ Entrada Bruta × 100\nResultado final do período, considerando todos os desembolsos incluindo investimentos e retiradas.',
   },
 ] as const;
 
@@ -261,7 +261,7 @@ export function RadarMargens({ saidas, entradas }: Props) {
         )}
       </div>
 
-      {/* KPI cards — último mês com receita */}
+      {/* KPI cards — último mês com entrada */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {MARGIN_DEFS.map((m) => {
           const pct      = kpiMk ? (margensByMonth[kpiMk]?.[m.label] ?? null) : null;
@@ -300,18 +300,18 @@ export function RadarMargens({ saidas, entradas }: Props) {
                   {delta >= 0 ? '+' : ''}{delta.toFixed(1)}pp vs mês ant.
                 </p>
               ) : prevPct === null && kpiPrevMk ? (
-                <p className="text-[10px] text-slate-300 mt-1.5">sem receita no mês ant.</p>
+                <p className="text-[10px] text-slate-300 mt-1.5">sem entrada no mês ant.</p>
               ) : null}
             </div>
           );
         })}
       </div>
 
-      {/* Aviso quando não há receita */}
+      {/* Aviso quando não há entrada */}
       {kpiMk === null && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3">
           <p className="text-xs text-amber-700 font-semibold">
-            Nenhum dado de receita encontrado no período selecionado. Carregue a planilha de entradas para visualizar as margens.
+            Nenhum dado de entrada encontrado no período selecionado. Carregue a planilha de entradas para visualizar as margens.
           </p>
         </div>
       )}
@@ -322,7 +322,7 @@ export function RadarMargens({ saidas, entradas }: Props) {
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={15} className="text-violet-500" />
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Evolução das Margens</h2>
-            <span className="ml-auto text-[10px] text-slate-400">% sobre Receita Bruta do mês</span>
+            <span className="ml-auto text-[10px] text-slate-400">% sobre Entrada Bruta do mês</span>
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -437,11 +437,11 @@ export function RadarMargens({ saidas, entradas }: Props) {
                 </tr>
               ))}
 
-              {/* Receita Bruta — linha de referência */}
+              {/* Entrada Bruta — linha de referência */}
               <tr className="border-t border-slate-200 bg-slate-50">
                 <td className="py-2.5 px-4 sticky left-0 z-10 bg-slate-50 border-r border-slate-100">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
-                    Receita Bruta (base)
+                    Entrada Bruta (base)
                   </span>
                 </td>
                 {filteredKeys.map((mk) => {
@@ -475,7 +475,7 @@ export function RadarMargens({ saidas, entradas }: Props) {
         </div>
 
         <div className="px-5 py-2.5 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50/50">
-          Δpp = diferença em pontos percentuais da margem vs. mês anterior (ex.: 52% → 55% = +3pp) · % calculada sobre Receita Bruta de cada mês
+          Δpp = diferença em pontos percentuais da margem vs. mês anterior (ex.: 52% → 55% = +3pp) · % calculada sobre Entrada Bruta de cada mês
         </div>
       </div>
     </div>

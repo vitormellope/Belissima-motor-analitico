@@ -113,10 +113,10 @@ function generateInsights(
       id: 'margem-bruta',
       type: grossMargin > 45 ? 'success' : grossMargin > 25 ? 'warning' : 'danger',
       icon: <TrendingUp size={14} />,
-      title: `Margem Bruta: ${grossMargin.toFixed(1)}% da receita`,
-      description: `Receita (${fmtCurrency(curEntradasTotal)}) − CMV (${fmtCurrency(cmvTotal)}) = Lucro Bruto de ${fmtCurrency(lucroBruto)}.`,
+      title: `Margem Bruta: ${grossMargin.toFixed(1)}% da entrada`,
+      description: `Entrada (${fmtCurrency(curEntradasTotal)}) − CMV (${fmtCurrency(cmvTotal)}) = Lucro Bruto de ${fmtCurrency(lucroBruto)}.`,
       value: `${grossMargin.toFixed(1)}% margem bruta`,
-      formula: `Fórmula: (Receita − CMV) ÷ Receita × 100\n= (${fmtCurrency(curEntradasTotal)} − ${fmtCurrency(cmvTotal)}) ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${grossMargin.toFixed(1)}% da receita bruta`,
+      formula: `Fórmula: (Entrada − CMV) ÷ Entrada × 100\n= (${fmtCurrency(curEntradasTotal)} − ${fmtCurrency(cmvTotal)}) ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${grossMargin.toFixed(1)}% da entrada bruta`,
     });
   }
 
@@ -127,10 +127,10 @@ function generateInsights(
       id: 'custo-pessoal',
       type: pessoalPct > 35 ? 'warning' : 'info',
       icon: <Users size={14} />,
-      title: `Custo com Pessoal: ${pessoalPct.toFixed(1)}% da receita`,
-      description: `Salários, encargos e benefícios (${fmtCurrency(pessoalTotal)}) representam ${pessoalPct.toFixed(1)}% da receita do período.`,
-      value: `${pessoalPct.toFixed(1)}% da receita`,
-      formula: `Fórmula: Custo Pessoal ÷ Receita × 100\n= ${fmtCurrency(pessoalTotal)} ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${pessoalPct.toFixed(1)}% da receita bruta`,
+      title: `Saída com Pessoal: ${pessoalPct.toFixed(1)}% da entrada`,
+      description: `Salários, encargos e benefícios (${fmtCurrency(pessoalTotal)}) representam ${pessoalPct.toFixed(1)}% da entrada do período.`,
+      value: `${pessoalPct.toFixed(1)}% da entrada`,
+      formula: `Fórmula: Saída Pessoal ÷ Entrada × 100\n= ${fmtCurrency(pessoalTotal)} ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${pessoalPct.toFixed(1)}% da entrada bruta`,
     });
   }
 
@@ -143,8 +143,8 @@ function generateInsights(
       id: 'opex-vs-sga',
       type: 'info',
       icon: <BarChart2 size={14} />,
-      title: 'Estrutura de Despesas',
-      description: `OPEX: ${fmtCurrency(opexTotal)} (${opexPct.toFixed(0)}% das despesas classificadas) · SG&A: ${fmtCurrency(sgaTotal)} (${sgaPct.toFixed(0)}%).`,
+      title: 'Estrutura de Saídas',
+      description: `OPEX: ${fmtCurrency(opexTotal)} (${opexPct.toFixed(0)}% das saídas classificadas) · SG&A: ${fmtCurrency(sgaTotal)} (${sgaPct.toFixed(0)}%).`,
       value: `OPEX ${opexPct.toFixed(0)}% / SGA ${sgaPct.toFixed(0)}%`,
       formula: `Fórmula: Categoria ÷ (OPEX + SG&A) × 100\nOPEX: ${fmtCurrency(opexTotal)} ÷ ${fmtCurrency(totalClass)} × 100 = ${opexPct.toFixed(1)}%\nSG&A: ${fmtCurrency(sgaTotal)} ÷ ${fmtCurrency(totalClass)} × 100 = ${sgaPct.toFixed(1)}%`,
     });
@@ -157,10 +157,10 @@ function generateInsights(
       id: 'carga-tributaria',
       type: tribPct > 12 ? 'warning' : 'info',
       icon: <AlertTriangle size={14} />,
-      title: `Carga Tributária: ${tribPct.toFixed(1)}% da receita`,
-      description: `Impostos e despesas financeiras (${fmtCurrency(tributosTotal)}) representam ${tribPct.toFixed(1)}% da receita bruta do período.`,
-      value: `${tribPct.toFixed(1)}% da receita`,
-      formula: `Fórmula: Tributos ÷ Receita × 100\n= ${fmtCurrency(tributosTotal)} ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${tribPct.toFixed(1)}% da receita bruta`,
+      title: `Carga Tributária: ${tribPct.toFixed(1)}% da entrada`,
+      description: `Impostos e saídas financeiras (${fmtCurrency(tributosTotal)}) representam ${tribPct.toFixed(1)}% da entrada bruta do período.`,
+      value: `${tribPct.toFixed(1)}% da entrada`,
+      formula: `Fórmula: Tributos ÷ Entrada × 100\n= ${fmtCurrency(tributosTotal)} ÷ ${fmtCurrency(curEntradasTotal)} × 100\n= ${tribPct.toFixed(1)}% da entrada bruta`,
     });
   }
 
@@ -192,7 +192,7 @@ function generateInsights(
         id: 'saidas-baixa',
         type: 'success',
         icon: <TrendingDown size={14} />,
-        title: 'Controle de custos positivo',
+        title: 'Controle de saídas positivo',
         description: `Saídas do período (${fmtCurrency(curSaidasTotal)}) reduziram ${Math.abs(varSaidas).toFixed(0)}% vs mês anterior (${fmtCurrency(prevSaidasTotal)}).`,
         value: `${varSaidas.toFixed(0)}% saídas`,
         formula: `Fórmula: (Atual − Anterior) ÷ Anterior × 100\n= (${fmtCurrency(curSaidasTotal)} − ${fmtCurrency(prevSaidasTotal)}) ÷ ${fmtCurrency(prevSaidasTotal)} × 100\n= ${varSaidas.toFixed(1)}%`,
@@ -205,9 +205,9 @@ function generateInsights(
           id: 'entradas-alta',
           type: 'success',
           icon: <TrendingUp size={14} />,
-          title: 'Crescimento de receita',
+          title: 'Crescimento de entrada',
           description: `Entradas (${fmtCurrency(curEntradasTotal)}) cresceram ${varEntradas.toFixed(0)}% vs mês anterior (${fmtCurrency(prevEntradasTotal)}).`,
-          value: `+${varEntradas.toFixed(0)}% receita`,
+          value: `+${varEntradas.toFixed(0)}% entrada`,
           formula: `Fórmula: (Atual − Anterior) ÷ Anterior × 100\n= (${fmtCurrency(curEntradasTotal)} − ${fmtCurrency(prevEntradasTotal)}) ÷ ${fmtCurrency(prevEntradasTotal)} × 100\n= ${varEntradas.toFixed(1)}%`,
         });
       } else if (varEntradas < -15) {
@@ -217,7 +217,7 @@ function generateInsights(
           icon: <TrendingDown size={14} />,
           title: 'Queda nas entradas',
           description: `Entradas (${fmtCurrency(curEntradasTotal)}) caíram ${Math.abs(varEntradas).toFixed(0)}% vs mês anterior (${fmtCurrency(prevEntradasTotal)}).`,
-          value: `${varEntradas.toFixed(0)}% receita`,
+          value: `${varEntradas.toFixed(0)}% entrada`,
           formula: `Fórmula: (Atual − Anterior) ÷ Anterior × 100\n= (${fmtCurrency(curEntradasTotal)} − ${fmtCurrency(prevEntradasTotal)}) ÷ ${fmtCurrency(prevEntradasTotal)} × 100\n= ${varEntradas.toFixed(1)}%`,
         });
       }
@@ -287,9 +287,9 @@ function generateInsights(
         type: 'tip',
         icon: <Star size={14} />,
         title: `${best.name} é o melhor dia de vendas`,
-        description: `${best.name} concentra ${bestPct.toFixed(0)}% da receita do período${worst ? `. ${worst.name} é o dia mais fraco` : ''}.`,
-        value: `${bestPct.toFixed(0)}% da receita`,
-        formula: `Fórmula: Receita do dia ÷ Total Receitas × 100\n= ${fmtCurrency(best.total)} ÷ ${fmtCurrency(totalRec)} × 100\n= ${bestPct.toFixed(1)}%`,
+        description: `${best.name} concentra ${bestPct.toFixed(0)}% da entrada do período${worst ? `. ${worst.name} é o dia mais fraco` : ''}.`,
+        value: `${bestPct.toFixed(0)}% da entrada`,
+        formula: `Fórmula: Entrada do dia ÷ Total Entradas × 100\n= ${fmtCurrency(best.total)} ÷ ${fmtCurrency(totalRec)} × 100\n= ${bestPct.toFixed(1)}%`,
       });
     }
   }

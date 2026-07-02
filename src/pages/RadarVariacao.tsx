@@ -128,10 +128,10 @@ export function RadarVariacao({ saidas }: Props) {
             <div className="flex items-center gap-2 mb-1">
               <Activity size={18} className="text-rose-500" />
               <h1 className="text-base font-bold text-slate-800">Radar de Variação</h1>
-              <InfoTooltip text="Matriz que mostra a evolução mês a mês de cada categoria de despesa (Natureza). A variação é calculada como: (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100. Vermelho = despesa cresceu (risco); Verde = despesa reduziu (economia). Células em branco = sem lançamento naquele mês." />
+              <InfoTooltip text="Matriz que mostra a evolução mês a mês de cada categoria de saída (Natureza). A variação é calculada como: (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100. Vermelho = saída cresceu (risco); Verde = saída reduziu (economia). Células em branco = sem lançamento naquele mês." />
             </div>
             <p className="text-xs text-slate-500">
-              Variação mês a mês de <strong>{rows.length} categorias</strong> de despesa ·{' '}
+              Variação mês a mês de <strong>{rows.length} categorias</strong> de saída ·{' '}
               <span className="text-rose-600 font-semibold">{alertCount} alertas</span> com variação &gt;{highlightThreshold}%
             </p>
           </div>
@@ -183,7 +183,7 @@ export function RadarVariacao({ saidas }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           {
-            label: 'Total de Despesas',
+            label: 'Total de Saídas',
             value: fmtCurrency(totalGeral),
             sub: `em ${monthKeys.length} meses`,
             color: 'text-rose-600',
@@ -194,7 +194,7 @@ export function RadarVariacao({ saidas }: Props) {
             value: fmtCurrency(totalGeral / Math.max(monthKeys.length, 1)),
             sub: 'por mês',
             color: 'text-slate-700',
-            tooltip: `Calculado como: Total de Despesas (${fmtCurrency(totalGeral)}) ÷ ${monthKeys.length} meses.`,
+            tooltip: `Calculado como: Total de Saídas (${fmtCurrency(totalGeral)}) ÷ ${monthKeys.length} meses.`,
           },
           {
             label: 'Categorias',
@@ -230,7 +230,7 @@ export function RadarVariacao({ saidas }: Props) {
               <tr className="bg-slate-50">
                 <th className="text-left py-3 px-4 text-slate-600 font-bold sticky left-0 bg-slate-50 z-20 min-w-[200px] border-b border-r border-slate-200">
                   <span className="flex items-center gap-1">
-                    Natureza / Despesa
+                    Natureza / Saída
                     <InfoTooltip text="Clique no nome da natureza para ver todos os lançamentos desta categoria em todos os meses. Clique em uma célula específica para ver apenas os lançamentos daquele mês." />
                   </span>
                 </th>
@@ -243,7 +243,7 @@ export function RadarVariacao({ saidas }: Props) {
                 <th className="text-right py-3 px-3 text-slate-500 font-semibold border-b border-slate-200 whitespace-nowrap">
                   <span className="flex items-center justify-end gap-1">
                     % Total
-                    <InfoTooltip text="Participação desta natureza no total geral de despesas. Calculado como: Total da Natureza ÷ Total de Todas as Despesas × 100." />
+                    <InfoTooltip text="Participação desta natureza no total geral de saídas. Calculado como: Total da Natureza ÷ Total de Todas as Saídas × 100." />
                   </span>
                 </th>
                 {monthLabels.map((ml, i) => (
@@ -382,7 +382,7 @@ export function RadarVariacao({ saidas }: Props) {
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={15} className="text-red-500" />
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Maiores Altas Recentes</h3>
-            <InfoTooltip text="Top 5 categorias com maior variação positiva (aumento de despesa) no mês mais recente com dados. Ordenado por variação percentual decrescente." />
+            <InfoTooltip text="Top 5 categorias com maior variação positiva (aumento de saída) no mês mais recente com dados. Ordenado por variação percentual decrescente." />
           </div>
           <div className="space-y-2 overflow-y-auto max-h-80 pr-1">
             {rows
@@ -412,7 +412,7 @@ export function RadarVariacao({ saidas }: Props) {
           <div className="flex items-center gap-2 mb-4">
             <TrendingDown size={15} className="text-emerald-500" />
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Maiores Reduções Recentes</h3>
-            <InfoTooltip text="Top 5 categorias com maior variação negativa (redução de despesa) no mês mais recente com dados. Representa áreas onde houve economia." />
+            <InfoTooltip text="Top 5 categorias com maior variação negativa (redução de saída) no mês mais recente com dados. Representa áreas onde houve economia." />
           </div>
           <div className="space-y-2 overflow-y-auto max-h-80 pr-1">
             {rows

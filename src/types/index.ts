@@ -1,5 +1,4 @@
 export interface Transaction {
-  numero: number;
   tipo: string;
   empresa: string;
   natureza: string;
@@ -8,7 +7,18 @@ export interface Transaction {
   vRealizado: number;
   conta: string;
   fornecedor: string;
+  status: string | null;
   source: 'saidas' | 'entradas';
+}
+
+export interface PaymentMethodSummary {
+  formaPagamento: string;
+  ticketMedio: number;
+  atendimentos: number;
+  percentual: number;
+  tef: number | null;
+  pos: number | null;
+  valor: number;
 }
 
 export type PeriodType = 'dia' | 'semana' | 'mes' | 'trimestre' | 'ano';

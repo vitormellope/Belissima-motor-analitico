@@ -1,72 +1,36 @@
-import { useState, useCallback } from 'react';
-import type { Transaction } from './types';
-import { parseExcelFile } from './utils/parseExcel';
-import { UploadZone } from './components/UploadZone';
+import { useState } from 'react';
 import { Dashboard } from './pages/Dashboard';
 import { RadarVariacao } from './pages/RadarVariacao';
 import { DrePage } from './pages/DrePage';
 import { RadarMargens } from './pages/RadarMargens';
 import { InsightsPage } from './pages/InsightsPage';
+import { ResumoVendasPage } from './pages/ResumoVendasPage';
 import { LoginPage } from './pages/LoginPage';
+import { useSupabaseData } from './hooks/useSupabaseData';
 import {
   LayoutDashboard, BarChart3, Radar, TrendingUp,
-  LogOut, Store, FileSpreadsheet, ChevronRight, ChevronLeft, Brain,
+  LogOut, Store, ChevronRight, ChevronLeft, Brain, CreditCard, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'insights';
+type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'insights' | 'resumo-vendas';
 
 const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard', label: 'Dashboard',                    icon: <LayoutDashboard size={15} /> },
-  { id: 'dre',       label: 'DRE',                          icon: <BarChart3 size={15} /> },
-  { id: 'radar',     label: 'Radar de Despesas',            icon: <Radar size={15} /> },
-  { id: 'margens',   label: 'Radar de Margens',             icon: <TrendingUp size={15} /> },
-  { id: 'insights',  label: 'Insights Test',                icon: <Brain size={15} /> },
+  { id: 'dashboard',      label: 'Dashboard',                    icon: <LayoutDashboard size={15} /> },
+  { id: 'dre',            label: 'DRE',                          icon: <BarChart3 size={15} /> },
+  { id: 'radar',          label: 'Radar de Saídas',              icon: <Radar size={15} /> },
+  { id: 'margens',        label: 'Radar de Margens',             icon: <TrendingUp size={15} /> },
+  { id: 'resumo-vendas',  label: 'Resumo de Vendas',             icon: <CreditCard size={15} /> },
+  { id: 'insights',       label: 'Insights Test',                icon: <Brain size={15} /> },
 ];
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => sessionStorage.getItem('belissima_auth') === 'true',
   );
+  const [activePage, setActivePage] = useState<Page>('dashboard');
+  const [collapsed, setCollapsed] = useState(false);
 
-  const [saidas, setSaidas]               = useState<Transaction[]>([]);
-  const [entradas, setEntradas]           = useState<Transaction[]>([]);
-  const [saidasFile, setSaidasFile]       = useState<string>();
-  const [entradasFile, setEntradasFile]   = useState<string>();
-  const [loadingSaidas, setLoadingSaidas]     = useState(false);
-  const [loadingEntradas, setLoadingEntradas] = useState(false);
-  const [error, setError]                 = useState<string>();
-  const [activePage, setActivePage]       = useState<Page>('dashboard');
-  const [collapsed, setCollapsed]         = useState(false);
-
-  const handleSaidasFile = useCallback(async (file: File) => {
-    setLoadingSaidas(true);
-    setError(undefined);
-    try {
-      const result = await parseExcelFile(file, 'saidas');
-      setSaidas(result);
-      setSaidasFile(file.name);
-    } catch (err) {
-      console.error('Erro ao processar saídas:', err);
-      setError(`Erro ao processar o arquivo de saídas: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setLoadingSaidas(false);
-    }
-  }, []);
-
-  const handleEntradasFile = useCallback(async (file: File) => {
-    setLoadingEntradas(true);
-    setError(undefined);
-    try {
-      const result = await parseExcelFile(file, 'entradas');
-      setEntradas(result);
-      setEntradasFile(file.name);
-    } catch (err) {
-      console.error('Erro ao processar entradas:', err);
-      setError(`Erro ao processar o arquivo de entradas: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setLoadingEntradas(false);
-    }
-  }, []);
+  const { saidas, entradas, paymentSummary, lastImportedAt, loading, error, refresh } = useSupabaseData();
 
   const handleLogout = () => {
     sessionStorage.removeItem('belissima_auth');
@@ -128,55 +92,45 @@ export default function App() {
 
         <div className="mx-3 border-t border-slate-100 my-2" />
 
-        {/* Upload zones — hidden when collapsed */}
+        {/* Status dos dados — substitui o antigo upload manual */}
         {!collapsed && (
-          <div className="px-3 pb-3 overflow-y-auto">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3">Importar Planilhas</p>
-            <div className="space-y-2">
-              <UploadZone
-                label="Saídas"
-                sublabel="Contas a Pagar (.xlsx)"
-                accent="text-rose-500"
-                bgAccent="bg-rose-50"
-                borderAccent="border-rose-300"
-                fileName={saidasFile}
-                onFile={handleSaidasFile}
-                onClear={() => { setSaidas([]); setSaidasFile(undefined); }}
-                loading={loadingSaidas}
-              />
-              <UploadZone
-                label="Entradas"
-                sublabel="Quadro de Vendas (.xlsx)"
-                accent="text-emerald-500"
-                bgAccent="bg-emerald-50"
-                borderAccent="border-emerald-300"
-                fileName={entradasFile}
-                onFile={handleEntradasFile}
-                onClear={() => { setEntradas([]); setEntradasFile(undefined); }}
-                loading={loadingEntradas}
-              />
-            </div>
+          <div className="px-3 pb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-3">Dados</p>
 
             {error && (
-              <p className="mt-2 text-[11px] text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-                {error}
-              </p>
-            )}
-
-            {/* Contador de lançamentos */}
-            {totalLancamentos > 0 && (
-              <div className="mt-3 flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
-                <FileSpreadsheet size={13} className="text-slate-400 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-600">{totalLancamentos.toLocaleString('pt-BR')} lançamentos</p>
-                  <p className="text-[10px] text-slate-400">
-                    {saidas.length > 0 && `${saidas.length} saídas`}
-                    {saidas.length > 0 && entradas.length > 0 && ' · '}
-                    {entradas.length > 0 && `${entradas.length} entradas`}
-                  </p>
-                </div>
+              <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-2">
+                <AlertTriangle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-red-600">Falha ao carregar dados: {error}</p>
               </div>
             )}
+
+            <div className="bg-slate-50 rounded-xl px-3 py-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-slate-600">
+                  {loading ? 'Carregando…' : `${totalLancamentos.toLocaleString('pt-BR')} lançamentos`}
+                </p>
+                <button
+                  onClick={() => refresh()}
+                  title="Atualizar dados"
+                  disabled={loading}
+                  className="text-slate-400 hover:text-rose-500 transition-colors disabled:opacity-40"
+                >
+                  <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+              {!loading && (
+                <p className="text-[10px] text-slate-400">
+                  {saidas.length > 0 && `${saidas.length} saídas`}
+                  {saidas.length > 0 && entradas.length > 0 && ' · '}
+                  {entradas.length > 0 && `${entradas.length} entradas`}
+                </p>
+              )}
+              {lastImportedAt && (
+                <p className="text-[10px] text-slate-400">
+                  Atualizado em {lastImportedAt.toLocaleDateString('pt-BR')} às {lastImportedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -212,11 +166,12 @@ export default function App() {
       {/* ── Main content ────────────────────────────────────────────────── */}
       <div className={`${collapsed ? 'ml-14' : 'ml-60'} flex-1 min-h-screen flex flex-col transition-all duration-200`}>
         <main className="flex-1 px-6 py-6 space-y-5">
-          {activePage === 'dashboard' && <Dashboard saidas={saidas} entradas={entradas} />}
-          {activePage === 'radar'     && <RadarVariacao saidas={saidas} />}
-          {activePage === 'dre'       && <DrePage saidas={saidas} entradas={entradas} />}
-          {activePage === 'margens'   && <RadarMargens saidas={saidas} entradas={entradas} />}
-          {activePage === 'insights'  && <InsightsPage saidas={saidas} entradas={entradas} />}
+          {activePage === 'dashboard'     && <Dashboard saidas={saidas} entradas={entradas} />}
+          {activePage === 'radar'         && <RadarVariacao saidas={saidas} />}
+          {activePage === 'dre'           && <DrePage saidas={saidas} entradas={entradas} />}
+          {activePage === 'margens'       && <RadarMargens saidas={saidas} entradas={entradas} />}
+          {activePage === 'resumo-vendas' && <ResumoVendasPage paymentSummary={paymentSummary} />}
+          {activePage === 'insights'      && <InsightsPage saidas={saidas} entradas={entradas} />}
         </main>
       </div>
     </div>
