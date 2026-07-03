@@ -69,15 +69,25 @@ export function useSupabaseData() {
     setLoading(true);
     setError(undefined);
     try {
-      const [txRes, summaryRes] = await Promise.all([
-        supabase.from('transactions').select('*').order('data', { ascending: true }),
-        supabase.from('payment_methods_summary').select('*'),
-      ]);
+      // O Supabase limita cada select a 1000 linhas — paginar com range() garante
+      // que TODAS as transações venham (senão meses inteiros somem do dashboard).
+      const PAGE = 1000;
+      const rows: TransactionRow[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .order('data', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const page = (data ?? []) as TransactionRow[];
+        rows.push(...page);
+        if (page.length < PAGE) break;
+      }
 
-      if (txRes.error) throw txRes.error;
+      const summaryRes = await supabase.from('payment_methods_summary').select('*');
       if (summaryRes.error) throw summaryRes.error;
 
-      const rows = (txRes.data ?? []) as TransactionRow[];
       setSaidas(rows.filter((r) => r.source === 'saidas').map(toTransaction));
       setEntradas(rows.filter((r) => r.source === 'entradas').map(toTransaction));
       setPaymentSummary((summaryRes.data ?? []).map(toPaymentSummary));
