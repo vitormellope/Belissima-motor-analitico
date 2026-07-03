@@ -134,7 +134,7 @@ export function getDayOfWeekTotals(txs: Transaction[]) {
 
 // ─── Time Series ─────────────────────────────────────────────────────────────
 
-function periodKey(date: Date, gran: PeriodType): string {
+export function periodKey(date: Date, gran: PeriodType): string {
   switch (gran) {
     case 'dia':       return format(date, 'dd/MM', { locale: ptBR });
     case 'semana':    return `Sem ${format(date, 'w', { locale: ptBR })}`;

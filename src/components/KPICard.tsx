@@ -12,6 +12,8 @@ interface Props {
   accent?: string;
   bgColor?: string;
   icon?: React.ReactNode;
+  /** Substitui a renderização numérica do valor por conteúdo customizado */
+  display?: React.ReactNode;
 }
 
 export function KPICard({
@@ -23,6 +25,7 @@ export function KPICard({
   accent = 'text-rose-600',
   bgColor = 'bg-white',
   icon,
+  display,
 }: Props) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -66,7 +69,7 @@ export function KPICard({
       </div>
 
       <div>
-        <p className={`text-2xl font-bold ${accent} leading-none`}>{displayValue}</p>
+        {display ?? <p className={`text-2xl font-bold ${accent} leading-none`}>{displayValue}</p>}
       </div>
 
       {variationDir !== null && variation !== undefined && (

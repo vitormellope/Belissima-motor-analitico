@@ -9,7 +9,7 @@ import {
   filterByPeriod, getPeriodBounds, getPreviousPeriodBounds,
   sumRealizado, getNaturezaComparativo, getContaTotals,
   getTopFornecedores, buildTimeSeries, calcVariation, fmtCurrency,
-  chartGranularity, autoGranularity, getDayOfWeekTotals,
+  chartGranularity, autoGranularity, getDayOfWeekTotals, periodKey,
 } from '../utils/analytics';
 import { DRE_MAPEAMENTO } from '../utils/dreMapping';
 import { KPICard } from '../components/KPICard';
@@ -231,13 +231,17 @@ interface ModalState {
   title: string; subtitle: string; transactions: Transaction[];
 }
 
+// Dashboard sempre abre no semestre (01/01/2026 – 30/06/2026)
+const SEMESTER_START = '2026-01-01';
+const SEMESTER_END = '2026-06-30';
+
 export function Dashboard({ saidas, entradas }: Props) {
   const refDate = new Date();
 
-  const [mode, setMode]               = useState<PeriodMode>('preset');
-  const [presetType, setPresetType]   = useState<PeriodType>('mes');
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd]     = useState('');
+  const [mode, setMode]               = useState<PeriodMode>('custom');
+  const [presetType, setPresetType]   = useState<PeriodType>('ano');
+  const [customStart, setCustomStart] = useState(SEMESTER_START);
+  const [customEnd, setCustomEnd]     = useState(SEMESTER_END);
   const [compareStart, setCompareStart] = useState('');
   const [compareEnd, setCompareEnd]     = useState('');
   const [showComparison, setShowComparison] = useState(false);
@@ -332,6 +336,42 @@ export function Dashboard({ saidas, entradas }: Props) {
     });
   }
 
+  function openContaModal(conta: string) {
+    const txs = saidasCur.filter((t) => t.conta === conta);
+    if (!txs.length) return;
+    setModal({
+      title: conta,
+      subtitle: `Saídas por conta · ${currentLabel} · ${txs.length} lançamentos`,
+      transactions: txs,
+    });
+  }
+
+  const DOW_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  function openDowModal(dayName: string) {
+    const idx = DOW_NAMES.indexOf(dayName);
+    if (idx < 0) return;
+    const base = dowSource === 'entradas' ? entradasCur : saidasCur;
+    const txs = base.filter((t) => t.data.getDay() === idx);
+    if (!txs.length) return;
+    setModal({
+      title: `${dayName} — ${dowSource === 'entradas' ? 'Entradas' : 'Saídas'}`,
+      subtitle: `${currentLabel} · ${txs.length} lançamentos`,
+      transactions: txs,
+    });
+  }
+
+  function openPeriodoModal(periodo: string) {
+    const sInP = saidasCur.filter((t) => periodKey(t.data, gran) === periodo);
+    const eInP = entradasCur.filter((t) => periodKey(t.data, gran) === periodo);
+    const txs = [...eInP, ...sInP];
+    if (!txs.length) return;
+    setModal({
+      title: `Período ${periodo}`,
+      subtitle: `${eInP.length} entradas · ${sInP.length} saídas`,
+      transactions: txs,
+    });
+  }
+
   return (
     <div className="space-y-5">
       <PeriodFilter
@@ -410,7 +450,9 @@ export function Dashboard({ saidas, entradas }: Props) {
               )}
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={timeSeries} margin={{ top: showLabels ? 22 : 10, right: 24, left: 8, bottom: 5 }}>
+              <ComposedChart data={timeSeries} margin={{ top: showLabels ? 22 : 10, right: 24, left: 8, bottom: 5 }}
+                onClick={(d: unknown) => { const a = d as { activeLabel?: string } | null; if (a?.activeLabel) openPeriodoModal(a.activeLabel); }}
+                style={{ cursor: 'pointer' }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#94a3b8' }} interval="preserveStartEnd" />
                 <YAxis tickFormatter={cfmt} tick={{ fontSize: 11, fill: '#94a3b8' }} width={64} />
@@ -500,7 +542,9 @@ export function Dashboard({ saidas, entradas }: Props) {
               </button>
             </div>
             <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={dowMerged} margin={{ top: 20, right: 16, left: 8, bottom: 5 }}>
+              <BarChart data={dowMerged} margin={{ top: 20, right: 16, left: 8, bottom: 5 }}
+                onClick={(d: unknown) => { const a = d as { activeLabel?: string } | null; if (a?.activeLabel) openDowModal(a.activeLabel); }}
+                style={{ cursor: 'pointer' }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis tickFormatter={cfmt} tick={{ fontSize: 11, fill: '#94a3b8' }} width={60} />
@@ -521,6 +565,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                         <p className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-100">
                           Soma acumulada no período — não é média diária
                         </p>
+                        <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver os lançamentos</p>
                       </div>
                     ) : null
                   }
@@ -685,7 +730,9 @@ export function Dashboard({ saidas, entradas }: Props) {
                 tooltip={`Soma das saídas realizadas por cada conta de débito no período. Cálculo: soma de V. Realizado agrupada pelo campo 'Conta'. Permite identificar qual conta concentra mais pagamentos. Total no período: ${fmtCurrency(totalSaidas)}.`}
               />
               <ResponsiveContainer width="100%" height={190}>
-                <BarChart data={contaTotals} margin={{ top: 20, right: 70, left: 8, bottom: 5 }}>
+                <BarChart data={contaTotals} margin={{ top: 20, right: 70, left: 8, bottom: 5 }}
+                  onClick={(d: unknown) => { const a = d as { activeLabel?: string } | null; if (a?.activeLabel) openContaModal(a.activeLabel); }}
+                  style={{ cursor: 'pointer' }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="conta" tick={{ fontSize: 10, fill: '#64748b' }}
                     tickFormatter={(v: unknown) => { const s = String(v); return s.length > 16 ? s.slice(0, 16) + '…' : s; }}
@@ -702,6 +749,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                             {totalSaidas > 0 ? (((payload[0].value as number) / totalSaidas) * 100).toFixed(1) : '0'}% do total de saídas
                           </p>
                           <p className="text-[10px] text-slate-400 mt-1">Cálculo: soma de V. Realizado onde Conta = "{label}"</p>
+                          <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver os lançamentos</p>
                         </div>
                       ) : null
                     }

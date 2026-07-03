@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import type { PeriodType, PeriodMode } from '../types';
-import { Calendar, ChevronDown, RefreshCw, GitCompare } from 'lucide-react';
+import { Calendar, ChevronDown, RefreshCw, GitCompare, Lock } from 'lucide-react';
 
-const PRESETS: { value: PeriodType; label: string }[] = [
-  { value: 'dia', label: 'Dia' },
-  { value: 'semana', label: 'Semana' },
-  { value: 'mes', label: 'Mês' },
-  { value: 'trimestre', label: 'Trimestre' },
-  { value: 'ano', label: 'Ano' },
+// Só Ano e Personalizado ficam ativos; os demais entram travados com cadeado.
+const PRESETS: { value: PeriodType; label: string; locked: boolean }[] = [
+  { value: 'dia', label: 'Dia', locked: true },
+  { value: 'semana', label: 'Semana', locked: true },
+  { value: 'mes', label: 'Mês', locked: true },
+  { value: 'trimestre', label: 'Trimestre', locked: true },
+  { value: 'ano', label: 'Ano', locked: false },
 ];
+
+// Semestre padrão do dashboard
+const SEMESTER_START = '2026-01-01';
+const SEMESTER_END = '2026-06-30';
 
 interface Props {
   mode: PeriodMode;
@@ -55,19 +60,30 @@ export function PeriodFilter({
         <div className="flex flex-wrap items-center gap-2">
           {/* Preset pills */}
           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-            {PRESETS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => { onModeChange('preset'); onPresetChange(opt.value); }}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  mode === 'preset' && presetType === opt.value
-                    ? 'bg-white text-rose-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {PRESETS.map((opt) =>
+              opt.locked ? (
+                <span
+                  key={opt.value}
+                  title="Filtro bloqueado — disponível apenas Ano e Personalizado"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1 text-slate-300 cursor-not-allowed select-none"
+                >
+                  <Lock size={10} />
+                  {opt.label}
+                </span>
+              ) : (
+                <button
+                  key={opt.value}
+                  onClick={() => { onModeChange('preset'); onPresetChange(opt.value); }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    mode === 'preset' && presetType === opt.value
+                      ? 'bg-white text-rose-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              )
+            )}
             <button
               onClick={() => { onModeChange('custom'); setOpen(true); }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1 ${
@@ -166,15 +182,11 @@ export function PeriodFilter({
             )}
             <div className="flex gap-2 ml-auto">
               <button
-                onClick={() => {
-                  const today = new Date();
-                  const fmt = (d: Date) => d.toISOString().split('T')[0];
-                  onCustomChange(fmt(new Date(today.getFullYear(), today.getMonth(), 1)), fmt(today));
-                }}
+                onClick={() => onCustomChange(SEMESTER_START, SEMESTER_END)}
                 className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-50 transition-colors"
               >
                 <RefreshCw size={10} />
-                Mês atual
+                Semestre (jan–jun 2026)
               </button>
               <button
                 onClick={() => setOpen(false)}
