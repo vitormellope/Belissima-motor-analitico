@@ -21,7 +21,7 @@ const MARGIN_DEFS = [
     color: '#10b981',
     bg: 'bg-emerald-500',
     ring: 'ring-emerald-200',
-    tooltip: 'Linha 5 do DRE.\nFórmula: Entrada Líquida (L3) − CMV (L4)\nMargem = Lucro Bruto ÷ Entrada Bruta × 100\nRepresenta quanto sobra da entrada após pagar a saída direta com as mercadorias vendidas.',
+    tooltip: 'Linha 5 do DRE.\nFórmula: Entrada Líquida (L3) − CMC (L4)\nMargem = Lucro Bruto ÷ Entrada Bruta × 100\nRepresenta quanto sobra da entrada após pagar a saída direta com as mercadorias compradas.',
   },
   {
     linha: 7,

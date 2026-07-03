@@ -35,7 +35,7 @@ interface Props {
 export function PeriodFilter({
   mode, presetType, customStart, customEnd, compareStart, compareEnd,
   showComparison, onModeChange, onPresetChange, onCustomChange,
-  onCompareChange, onToggleComparison, currentLabel, compareLabel,
+  onCompareChange, currentLabel, compareLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -97,19 +97,6 @@ export function PeriodFilter({
               <ChevronDown size={11} className={`transition-transform ${open && mode === 'custom' ? 'rotate-180' : ''}`} />
             </button>
           </div>
-
-          {/* Compare toggle */}
-          <button
-            onClick={onToggleComparison}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
-              showComparison
-                ? 'bg-violet-50 text-violet-600 border-violet-200'
-                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <GitCompare size={12} />
-            Comparar
-          </button>
         </div>
       </div>
 

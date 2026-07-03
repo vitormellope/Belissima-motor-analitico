@@ -245,7 +245,6 @@ export function Dashboard({ saidas, entradas }: Props) {
   const [compareStart, setCompareStart] = useState('');
   const [compareEnd, setCompareEnd]     = useState('');
   const [showComparison, setShowComparison] = useState(false);
-  const [dowSource, setDowSource]     = useState<'entradas' | 'saidas'>('entradas');
   const [modal, setModal]             = useState<ModalState | null>(null);
 
   // Period bounds
@@ -350,12 +349,13 @@ export function Dashboard({ saidas, entradas }: Props) {
   function openDowModal(dayName: string) {
     const idx = DOW_NAMES.indexOf(dayName);
     if (idx < 0) return;
-    const base = dowSource === 'entradas' ? entradasCur : saidasCur;
-    const txs = base.filter((t) => t.data.getDay() === idx);
+    const eInDay = entradasCur.filter((t) => t.data.getDay() === idx);
+    const sInDay = saidasCur.filter((t) => t.data.getDay() === idx);
+    const txs = [...eInDay, ...sInDay];
     if (!txs.length) return;
     setModal({
-      title: `${dayName} — ${dowSource === 'entradas' ? 'Entradas' : 'Saídas'}`,
-      subtitle: `${currentLabel} · ${txs.length} lançamentos`,
+      title: `${dayName} — Entradas e Saídas`,
+      subtitle: `${currentLabel} · ${eInDay.length} entradas · ${sInDay.length} saídas`,
       transactions: txs,
     });
   }
@@ -525,30 +525,20 @@ export function Dashboard({ saidas, entradas }: Props) {
 
           {/* Day of week */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-4">
               <CalendarDays size={16} className="text-rose-500" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Distribuição por Dia da Semana</h2>
-              <InfoTooltip text="Soma acumulada no período selecionado por dia da semana. Permite identificar os dias com maior volume de entradas ou saídas. Cálculo: soma de V. Realizado de todos os lançamentos que caem naquele dia da semana no período." />
+              <InfoTooltip text="Comparativo de entradas (verde) e saídas (vermelho) acumuladas por dia da semana no período. Cálculo: soma de V. Realizado de todos os lançamentos que caem naquele dia da semana. Clique numa barra para ver os lançamentos." />
             </div>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-[11px] text-slate-400">Destacar:</span>
-              <button onClick={() => setDowSource('entradas')}
-                className={`text-[11px] font-semibold px-3 py-1 rounded-lg border transition-all ${dowSource === 'entradas' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'text-slate-400 border-slate-200 hover:border-slate-300'}`}>
-                Entradas (Vendas)
-              </button>
-              <button onClick={() => setDowSource('saidas')}
-                className={`text-[11px] font-semibold px-3 py-1 rounded-lg border transition-all ${dowSource === 'saidas' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'text-slate-400 border-slate-200 hover:border-slate-300'}`}>
-                Saídas
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={dowMerged} margin={{ top: 20, right: 16, left: 8, bottom: 5 }}
+            <ResponsiveContainer width="100%" height={230}>
+              <BarChart data={dowMerged} margin={{ top: 24, right: 16, left: 8, bottom: 5 }}
                 onClick={(d: unknown) => { const a = d as { activeLabel?: string } | null; if (a?.activeLabel) openDowModal(a.activeLabel); }}
                 style={{ cursor: 'pointer' }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis tickFormatter={cfmt} tick={{ fontSize: 11, fill: '#94a3b8' }} width={60} />
                 <Tooltip
+                  cursor={{ fill: 'rgba(0,0,0,0.03)' }}
                   content={({ active, payload, label }) =>
                     active && payload?.length ? (
                       <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[170px]">
@@ -572,13 +562,13 @@ export function Dashboard({ saidas, entradas }: Props) {
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {entradas.length > 0 && (
-                  <Bar dataKey="vendas" name="Entradas (Vendas)" radius={[5,5,0,0]} fill={dowSource === 'entradas' ? '#10b981' : '#d1fae5'}>
-                    {dowSource === 'entradas' && <LabelList dataKey="vendas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#059669' }} />}
+                  <Bar dataKey="vendas" name="Entradas (Vendas)" radius={[5,5,0,0]} fill="#10b981">
+                    <LabelList dataKey="vendas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#059669' }} />
                   </Bar>
                 )}
                 {saidas.length > 0 && (
-                  <Bar dataKey="despesas" name="Saídas" radius={[5,5,0,0]} fill={dowSource === 'saidas' ? '#f43f5e' : '#fecdd3'}>
-                    {dowSource === 'saidas' && <LabelList dataKey="despesas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#e11d48' }} />}
+                  <Bar dataKey="despesas" name="Saídas" radius={[5,5,0,0]} fill="#f43f5e">
+                    <LabelList dataKey="despesas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fontWeight: 700, fill: '#e11d48' }} />
                   </Bar>
                 )}
               </BarChart>
@@ -792,7 +782,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-xs font-bold text-slate-800">{fmtCurrency(f.total)}</p>
-                        <p className="text-[10px] text-slate-400">{pctTotal.toFixed(1)}% do CMV</p>
+                        <p className="text-[10px] text-slate-400">{pctTotal.toFixed(1)}% do CMC</p>
                       </div>
                     </button>
                   );

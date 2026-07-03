@@ -11,8 +11,8 @@ export interface DREItem {
 }
 
 export const DRE_MAPEAMENTO: DREItem[] = [
-  { natureza: 'COMPRA DE MERCADORIAS', categoria: 'CUSTO', subcategoria: 'CMV - Mercadoria' },
-  { natureza: 'FRETES MERCADORIAS', categoria: 'CUSTO', subcategoria: 'CMV - Frete entrada' },
+  { natureza: 'COMPRA DE MERCADORIAS', categoria: 'CUSTO', subcategoria: 'CMC - Mercadoria' },
+  { natureza: 'FRETES MERCADORIAS', categoria: 'CUSTO', subcategoria: 'CMC - Frete entrada' },
   { natureza: 'EMBALAGENS E ETIQUETAS', categoria: 'CUSTO', subcategoria: 'Custo variavel' },
   { natureza: 'DIREITO AUTORAL', categoria: 'CUSTO', subcategoria: 'Royalties produto' },
   { natureza: 'SALÁRIOS', categoria: 'DESPESA_OPERACIONAL', subcategoria: 'Pessoal loja' },
@@ -264,7 +264,7 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
     { linha: 1,  descricao: '(+) Entrada Bruta',                        sinal: '+',  rowStyle: 'receita',   total: totTxs(grpEntradas),      months: mL1,  groups: groupBySubcat(grpEntradas),      transactions: grpEntradas,      expandable: grpEntradas.length > 0 },
     { linha: 2,  descricao: '(-) Deduções de Vendas',                   sinal: '-',  rowStyle: 'deducao',   total: totTxs(grpDeducoes),       months: mL2,  groups: groupBySubcat(grpDeducoes),  transactions: grpDeducoes,  expandable: grpDeducoes.length > 0 },
     { linha: 3,  descricao: 'Entrada Líquida',                          sinal: null, rowStyle: 'subtotal',  total: sumMap(mL3),                months: mL3,  groups: [],                          transactions: [],                          expandable: false },
-    { linha: 4,  descricao: '(-) Saída com Mercadorias Vendidas (CMV)',  sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpCOGS),           months: mL4,  groups: groupBySubcat(grpCOGS),      transactions: grpCOGS,      expandable: grpCOGS.length > 0 },
+    { linha: 4,  descricao: '(-) Saída com Mercadorias Compradas (CMC)', sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpCOGS),           months: mL4,  groups: groupBySubcat(grpCOGS),      transactions: grpCOGS,      expandable: grpCOGS.length > 0 },
     { linha: 5,  descricao: 'Lucro Bruto',                              sinal: null, rowStyle: 'subtotal',  total: sumMap(mL5),                months: mL5,  groups: [],                          transactions: [],                          expandable: false },
     { linha: 6,  descricao: '(-) Saídas Operacionais (OPEX)',           sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpOPEX),           months: mL6,  groups: groupBySubcat(grpOPEX),      transactions: grpOPEX,      expandable: grpOPEX.length > 0 },
     { linha: 7,  descricao: 'Lucro Operacional Bruto',                  sinal: null, rowStyle: 'subtotal',  total: sumMap(mL7),                months: mL7,  groups: [],                          transactions: [],                          expandable: false },

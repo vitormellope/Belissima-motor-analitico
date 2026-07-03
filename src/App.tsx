@@ -3,16 +3,15 @@ import { Dashboard } from './pages/Dashboard';
 import { RadarVariacao } from './pages/RadarVariacao';
 import { DrePage } from './pages/DrePage';
 import { RadarMargens } from './pages/RadarMargens';
-import { InsightsPage } from './pages/InsightsPage';
 import { ResumoVendasPage } from './pages/ResumoVendasPage';
 import { LoginPage } from './pages/LoginPage';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import {
   LayoutDashboard, BarChart3, Radar, TrendingUp,
-  LogOut, Store, ChevronRight, ChevronLeft, Brain, CreditCard, RefreshCw, AlertTriangle,
+  LogOut, Store, ChevronRight, ChevronLeft, CreditCard, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'insights' | 'resumo-vendas';
+type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'resumo-vendas';
 
 const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard',      label: 'Dashboard',                    icon: <LayoutDashboard size={15} /> },
@@ -20,7 +19,6 @@ const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'radar',          label: 'Radar de Saídas',              icon: <Radar size={15} /> },
   { id: 'margens',        label: 'Radar de Margens',             icon: <TrendingUp size={15} /> },
   { id: 'resumo-vendas',  label: 'Resumo de Vendas',             icon: <CreditCard size={15} /> },
-  { id: 'insights',       label: 'Insights Test',                icon: <Brain size={15} /> },
 ];
 
 export default function App() {
@@ -171,7 +169,6 @@ export default function App() {
           {activePage === 'dre'           && <DrePage saidas={saidas} entradas={entradas} />}
           {activePage === 'margens'       && <RadarMargens saidas={saidas} entradas={entradas} />}
           {activePage === 'resumo-vendas' && <ResumoVendasPage paymentSummary={paymentSummary} />}
-          {activePage === 'insights'      && <InsightsPage saidas={saidas} entradas={entradas} />}
         </main>
       </div>
     </div>
