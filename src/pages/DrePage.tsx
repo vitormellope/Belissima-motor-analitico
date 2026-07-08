@@ -18,8 +18,8 @@ interface Props {
 // ─── Row style config ─────────────────────────────────────────────────────────
 
 const ROW_STYLES: Record<string, string> = {
-  receita:   'bg-sky-50 text-slate-700',
-  deducao:   'bg-rose-50 text-rose-800',
+  receita:   'bg-emerald-50 text-slate-700',
+  deducao:   'bg-rose-50 text-slate-700',
   despesa:   'bg-rose-50 text-slate-700',
   subtotal:  'bg-sky-100 text-slate-800 font-bold',
   resultado: 'bg-slate-800 text-white font-bold',
@@ -28,7 +28,7 @@ const ROW_STYLES: Record<string, string> = {
 
 // Explicit solid backgrounds for sticky cells (bg-inherit bleeds when scrolling)
 const STICKY_BG: Record<string, string> = {
-  receita:   'bg-sky-50',
+  receita:   'bg-emerald-50',
   deducao:   'bg-rose-50',
   despesa:   'bg-rose-50',
   subtotal:  'bg-sky-100',
@@ -56,9 +56,12 @@ const DETAIL_STICKY_BG: Record<string, string> = {
 
 function subtotalValueColor(value: number, rowStyle: string): string {
   const dark = rowStyle === 'resultado' || rowStyle === 'fluxo';
-  if (value > 0) return dark ? 'text-emerald-300' : 'text-emerald-700';
-  if (value < 0) return dark ? 'text-rose-300' : 'text-rose-700';
-  return dark ? 'text-slate-300' : 'text-slate-500';
+  // Subtotais azuis (Receita Líquida, Lucro Bruto, EBITA...) usam fonte preta padrão.
+  // Só Resultado do Mês / Fluxo de Caixa (fundo escuro) mantêm verde/vermelho.
+  if (!dark) return 'text-slate-800';
+  if (value > 0) return 'text-emerald-300';
+  if (value < 0) return 'text-rose-300';
+  return 'text-slate-300';
 }
 
 // Variation color: for expense rows (-), falling = good; for income/subtotals, rising = good

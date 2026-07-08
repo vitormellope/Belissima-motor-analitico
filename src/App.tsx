@@ -14,7 +14,7 @@ import {
 type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'resumo-vendas';
 
 const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard',      label: 'Dashboard',                    icon: <LayoutDashboard size={15} /> },
+  { id: 'dashboard',      label: 'Fluxo de Caixa',               icon: <LayoutDashboard size={15} /> },
   { id: 'dre',            label: 'DRE',                          icon: <BarChart3 size={15} /> },
   { id: 'radar',          label: 'Radar de Saídas',              icon: <Radar size={15} /> },
   { id: 'margens',        label: 'Radar de Margens',             icon: <TrendingUp size={15} /> },

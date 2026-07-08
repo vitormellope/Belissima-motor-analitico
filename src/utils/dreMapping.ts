@@ -144,7 +144,7 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   function classify(t: Transaction): DREItem | undefined {
     const nat = t.natureza.toUpperCase().trim();
     const forn = (t.fornecedor ?? '').toUpperCase().trim();
-    if (nat.includes('DAS')) return DEDUCAO;
+    if (/\bDAS\b/.test(nat)) return DEDUCAO; // \b evita casar "venDAS do dia"
     if (nat === 'IMPOSTOS E TAXAS' && forn.includes('PREFEITURA DA CIDADE DO RIO DE JANEIRO')) return DEDUCAO;
     if (nat === 'SISTEMAS DE INFORMATICA' && forn.includes('NOVA FERREIRA')) return DEDUCAO;
     return dreMap.get(nat);
@@ -187,7 +187,7 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   }
 
   function groupBySubcat(txs: Transaction[]): DREGroup[] {
-    const subOf = (t: Transaction) => classify(t)?.subcategoria ?? '(sem subcategoria)';
+    const subOf = (t: Transaction) => classify(t)?.subcategoria ?? t.natureza;
     const subs = Array.from(new Set(txs.map(subOf)));
     return subs
       .map((subcategoria) => {
