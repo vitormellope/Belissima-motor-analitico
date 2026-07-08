@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Cell, LabelList, ReferenceLine,
+} from 'recharts';
 import type { Transaction } from '../types';
 import { buildDRE } from '../utils/dreMapping';
 import type { DRELine, DREGroup } from '../utils/dreMapping';
 import { fmtCurrency } from '../utils/analytics';
 import { TransactionModal } from '../components/TransactionModal';
-import { ChevronDown, ChevronRight, AlertTriangle, FileText, Columns } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertTriangle, FileText, Columns, LineChart } from 'lucide-react';
 
 interface Props {
   saidas: Transaction[];
@@ -154,6 +158,16 @@ export function DrePage({ saidas, entradas }: Props) {
   const ebita = L(9)?.total ?? 0;
   const resultado = L(17)?.total ?? 0;
 
+  // Série de Lucro Líquido (linha 12) mês a mês para o gráfico de evolução
+  const lucroLiquidoSerie = useMemo(() => {
+    const meses = L(12)?.months ?? {};
+    return dre.monthKeys.map((mk) => {
+      const [y, m] = mk.split('-');
+      const short = `${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][Number(m) - 1]}/${y.slice(2)}`;
+      return { mes: short, lucro: meses[mk] ?? 0 };
+    });
+  }, [dre]);
+
   const pct = (v: number) =>
     receitaBruta > 0 ? ` (${((v / receitaBruta) * 100).toFixed(1)}% da entrada)` : '';
 
@@ -287,11 +301,14 @@ export function DrePage({ saidas, entradas }: Props) {
                     {/* Descrição — sticky left-0 */}
                     <td className={`py-2.5 px-4 sticky left-0 z-10 ${stickyBg} border-r border-slate-200/50`}>
                       <div className="flex items-center gap-1.5">
-                        {canExpand && (
-                          isExpanded
-                            ? <ChevronDown size={11} className="shrink-0 opacity-60" />
-                            : <ChevronRight size={11} className="shrink-0 opacity-40" />
-                        )}
+                        {/* Slot fixo p/ a seta — mantém o texto alinhado mesmo sem seta */}
+                        <span className="w-3 shrink-0 flex items-center justify-center">
+                          {canExpand && (
+                            isExpanded
+                              ? <ChevronDown size={11} className="opacity-60" />
+                              : <ChevronRight size={11} className="opacity-40" />
+                          )}
+                        </span>
                         <span className={`${isSubtotal ? 'font-bold' : ''} leading-snug`}>{line.descricao}</span>
                         {canClick && !canExpand && (
                           <span className="ml-1 text-[9px] opacity-40">[ver]</span>
@@ -413,6 +430,62 @@ export function DrePage({ saidas, entradas }: Props) {
           Clique em linhas de dados para ver os lançamentos · Δ% = variação mês a mês = (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100 · Fluxo de Caixa parte do saldo inicial de {fmtCurrency(dre.saldoInicial)} (jan/2026, soma das 3 contas)
         </div>
       </div>
+
+      {/* Evolução do Lucro Líquido */}
+      {lucroLiquidoSerie.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <LineChart size={16} className="text-emerald-500" />
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Evolução do Lucro Líquido</h2>
+            <span className="text-[10px] text-slate-400 ml-auto">Linha 12 do DRE · mês a mês</span>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={lucroLiquidoSerie} margin={{ top: 24, right: 16, left: 8, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#64748b' }} />
+              <YAxis
+                tickFormatter={(v: number) => {
+                  const abs = Math.abs(v);
+                  const s = v < 0 ? '−' : '';
+                  return abs >= 1000 ? `${s}R$${(abs / 1000).toFixed(0)}k` : `${s}R$${abs.toFixed(0)}`;
+                }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+                width={64}
+              />
+              <Tooltip
+                cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                content={({ active, payload, label }) =>
+                  active && payload?.length ? (
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[160px]">
+                      <p className="font-bold text-slate-700 mb-1">{label}</p>
+                      <p className={`font-bold ${(payload[0].value as number) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        Lucro Líquido: {fmtCurrency(payload[0].value as number)}
+                      </p>
+                    </div>
+                  ) : null
+                }
+              />
+              <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
+              <Bar dataKey="lucro" name="Lucro Líquido" radius={[5, 5, 0, 0]} maxBarSize={64}>
+                {lucroLiquidoSerie.map((d, idx) => (
+                  <Cell key={idx} fill={d.lucro >= 0 ? '#10b981' : '#f43f5e'} />
+                ))}
+                <LabelList
+                  dataKey="lucro"
+                  position="top"
+                  formatter={(v: unknown) => {
+                    const n = Number(v);
+                    const abs = Math.abs(n);
+                    const s = n < 0 ? '−' : '';
+                    return abs >= 1000 ? `${s}R$${(abs / 1000).toFixed(0)}k` : `${s}R$${abs.toFixed(0)}`;
+                  }}
+                  style={{ fontSize: 10, fontWeight: 700, fill: '#475569' }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Unmapped naturezas */}
       {dre.unmapped.length > 0 && (
