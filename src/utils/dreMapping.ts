@@ -134,6 +134,22 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
     dreMap.set(item.natureza.toUpperCase().trim(), item);
   }
 
+  const DEDUCAO: DREItem = { natureza: '', categoria: 'DESPESA_OPERACIONAL', subcategoria: 'Deducoes de venda' };
+
+  // Classificação por lançamento — aplica overrides por fornecedor antes do mapa por natureza.
+  // Regras: impostos sobre a venda vão para "Deduções de Vendas" (topo do DRE):
+  //  - DAS SIMPLES NACIONAL (qualquer DAS)
+  //  - IMPOSTOS E TAXAS da Prefeitura do Rio (ISS-like)
+  //  - SISTEMAS DE INFORMATICA da NOVA FERREIRA (imposto disfarçado)
+  function classify(t: Transaction): DREItem | undefined {
+    const nat = t.natureza.toUpperCase().trim();
+    const forn = (t.fornecedor ?? '').toUpperCase().trim();
+    if (nat.includes('DAS')) return DEDUCAO;
+    if (nat === 'IMPOSTOS E TAXAS' && forn.includes('PREFEITURA DA CIDADE DO RIO DE JANEIRO')) return DEDUCAO;
+    if (nat === 'SISTEMAS DE INFORMATICA' && forn.includes('NOVA FERREIRA')) return DEDUCAO;
+    return dreMap.get(nat);
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   const emptyMap = (): Record<string, number> =>
@@ -161,7 +177,7 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
     excludeSubcat?: string
   ): Transaction[] {
     return saidas.filter((t) => {
-      const item = dreMap.get(t.natureza.toUpperCase().trim());
+      const item = classify(t);
       if (!item) return false;
       if (cat !== null && item.categoria !== cat) return false;
       if (subcat && item.subcategoria !== subcat) return false;
@@ -171,22 +187,14 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   }
 
   function groupBySubcat(txs: Transaction[]): DREGroup[] {
-    const map = new Map<string, number[]>();
-    for (const t of txs) {
-      const item = dreMap.get(t.natureza.toUpperCase().trim());
-      const sub = item?.subcategoria ?? '(sem subcategoria)';
-      if (!map.has(sub)) map.set(sub, []);
-      map.get(sub)!.push(t.vRealizado);
-    }
-    return Array.from(map.entries())
-      .map(([subcategoria, vals]) => {
-        const matched = txs.filter((t) => {
-          const item = dreMap.get(t.natureza.toUpperCase().trim());
-          return (item?.subcategoria ?? '(sem subcategoria)') === subcategoria;
-        });
+    const subOf = (t: Transaction) => classify(t)?.subcategoria ?? '(sem subcategoria)';
+    const subs = Array.from(new Set(txs.map(subOf)));
+    return subs
+      .map((subcategoria) => {
+        const matched = txs.filter((t) => subOf(t) === subcategoria);
         return {
           subcategoria,
-          total: vals.reduce((a, b) => a + b, 0),
+          total: matched.reduce((a, t) => a + t.vRealizado, 0),
           months: sumByMonth(matched),
           transactions: matched,
         };
@@ -209,16 +217,16 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   const grpCOGS = filterSaidas('CUSTO');
   const grpOPEX = filterSaidas('DESPESA_OPERACIONAL', undefined, 'Deducoes de venda');
   const grpSGA = saidas.filter((t) => {
-    const item = dreMap.get(t.natureza.toUpperCase().trim());
+    const item = classify(t);
     return item?.categoria === 'DESPESA_ADMINISTRATIVA' && item.subcategoria !== 'Dividendos/Socios';
   });
   const grpFinanceiro = filterSaidas('FINANCEIRO');
   const grpCAPEX = filterSaidas('INVESTIMENTO');
   const grpDividendos = saidas.filter(
-    (t) => dreMap.get(t.natureza.toUpperCase().trim())?.subcategoria === 'Dividendos/Socios'
+    (t) => classify(t)?.subcategoria === 'Dividendos/Socios'
   );
   const grpOutrasSaidas = filterSaidas('Outros');
-  const unmappedTxs = saidas.filter((t) => !dreMap.has(t.natureza.toUpperCase().trim()));
+  const unmappedTxs = saidas.filter((t) => !classify(t));
 
   // ── Month maps ────────────────────────────────────────────────────────────
 
@@ -268,17 +276,16 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   // ── Lines ─────────────────────────────────────────────────────────────────
 
   const lines: DRELine[] = [
-    { linha: 1,  descricao: '(+) Entrada Bruta',                        sinal: '+',  rowStyle: 'receita',   total: totTxs(grpEntradas),      months: mL1,  groups: groupBySubcat(grpEntradas),      transactions: grpEntradas,      expandable: grpEntradas.length > 0 },
+    { linha: 1,  descricao: '(+) Receita Bruta',                        sinal: '+',  rowStyle: 'receita',   total: totTxs(grpEntradas),      months: mL1,  groups: groupBySubcat(grpEntradas),      transactions: grpEntradas,      expandable: grpEntradas.length > 0 },
     { linha: 2,  descricao: '(-) Deduções de Vendas',                   sinal: '-',  rowStyle: 'deducao',   total: totTxs(grpDeducoes),       months: mL2,  groups: groupBySubcat(grpDeducoes),  transactions: grpDeducoes,  expandable: grpDeducoes.length > 0 },
-    { linha: 3,  descricao: 'Entrada Líquida',                          sinal: null, rowStyle: 'subtotal',  total: sumMap(mL3),                months: mL3,  groups: [],                          transactions: [],                          expandable: false },
-    { linha: 4,  descricao: '(-) Saída com Mercadorias Compradas (CMC)', sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpCOGS),           months: mL4,  groups: groupBySubcat(grpCOGS),      transactions: grpCOGS,      expandable: grpCOGS.length > 0 },
+    { linha: 3,  descricao: 'Receita Líquida',                          sinal: null, rowStyle: 'subtotal',  total: sumMap(mL3),                months: mL3,  groups: [],                          transactions: [],                          expandable: false },
+    { linha: 4,  descricao: '(-) Custo de Mercadorias Compradas',       sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpCOGS),           months: mL4,  groups: groupBySubcat(grpCOGS),      transactions: grpCOGS,      expandable: grpCOGS.length > 0 },
     { linha: 5,  descricao: 'Lucro Bruto',                              sinal: null, rowStyle: 'subtotal',  total: sumMap(mL5),                months: mL5,  groups: [],                          transactions: [],                          expandable: false },
-    { linha: 6,  descricao: '(-) Saídas Operacionais (OPEX)',           sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpOPEX),           months: mL6,  groups: groupBySubcat(grpOPEX),      transactions: grpOPEX,      expandable: grpOPEX.length > 0 },
+    { linha: 6,  descricao: '(-) Despesas Operacionais (OPEX)',         sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpOPEX),           months: mL6,  groups: groupBySubcat(grpOPEX),      transactions: grpOPEX,      expandable: grpOPEX.length > 0 },
     { linha: 7,  descricao: 'Lucro Operacional Bruto',                  sinal: null, rowStyle: 'subtotal',  total: sumMap(mL7),                months: mL7,  groups: [],                          transactions: [],                          expandable: false },
     { linha: 8,  descricao: '(-) Vendas, Gerais e Administrativo (SG&A)', sinal: '-', rowStyle: 'despesa',  total: totTxs(grpSGA),            months: mL8,  groups: groupBySubcat(grpSGA),        transactions: grpSGA,        expandable: grpSGA.length > 0 },
     { linha: 9,  descricao: 'Lucro Operacional (EBITA)',                sinal: null, rowStyle: 'subtotal',  total: sumMap(mL9),                months: mL9,  groups: [],                          transactions: [],                          expandable: false },
-    { linha: 10, descricao: '(-) Imposto de Renda e Contribuição Social', sinal: '-', rowStyle: 'despesa',  total: 0,                          months: mL10, groups: [],                          transactions: [],                          expandable: false },
-    { linha: 11, descricao: '(-) Saídas Financeiras',                   sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpFinanceiro),      months: mL11, groups: groupBySubcat(grpFinanceiro), transactions: grpFinanceiro, expandable: grpFinanceiro.length > 0 },
+    { linha: 11, descricao: '(-) Despesas Financeiras',                 sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpFinanceiro),      months: mL11, groups: groupBySubcat(grpFinanceiro), transactions: grpFinanceiro, expandable: grpFinanceiro.length > 0 },
     { linha: 12, descricao: 'Lucro Líquido',                            sinal: null, rowStyle: 'subtotal',  total: sumMap(mL12),               months: mL12, groups: [],                          transactions: [],                          expandable: false },
     { linha: 13, descricao: '(-) Saídas de Capital (CAPEX)',            sinal: '-',  rowStyle: 'despesa',   total: totTxs(grpCAPEX),          months: mL13, groups: groupBySubcat(grpCAPEX),     transactions: grpCAPEX,     expandable: grpCAPEX.length > 0 },
     { linha: 14, descricao: '(-) Dividendos',                           sinal: '-',  rowStyle: 'deducao',   total: totTxs(grpDividendos),      months: mL14, groups: groupBySubcat(grpDividendos), transactions: grpDividendos, expandable: grpDividendos.length > 0 },

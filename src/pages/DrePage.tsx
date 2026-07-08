@@ -18,46 +18,47 @@ interface Props {
 // ─── Row style config ─────────────────────────────────────────────────────────
 
 const ROW_STYLES: Record<string, string> = {
-  receita:   'bg-emerald-50 text-emerald-900',
+  receita:   'bg-sky-50 text-slate-700',
   deducao:   'bg-rose-50 text-rose-800',
-  despesa:   'bg-pink-50 text-slate-700',
-  subtotal:  'bg-slate-700 text-white font-bold',
-  resultado: 'bg-amber-800 text-white font-bold',
+  despesa:   'bg-rose-50 text-slate-700',
+  subtotal:  'bg-sky-100 text-slate-800 font-bold',
+  resultado: 'bg-slate-800 text-white font-bold',
   fluxo:     'bg-slate-900 text-white font-bold',
 };
 
 // Explicit solid backgrounds for sticky cells (bg-inherit bleeds when scrolling)
 const STICKY_BG: Record<string, string> = {
-  receita:   'bg-emerald-50',
+  receita:   'bg-sky-50',
   deducao:   'bg-rose-50',
-  despesa:   'bg-pink-50',
-  subtotal:  'bg-slate-700',
-  resultado: 'bg-amber-800',
+  despesa:   'bg-rose-50',
+  subtotal:  'bg-sky-100',
+  resultado: 'bg-slate-800',
   fluxo:     'bg-slate-900',
 };
 
 const DETAIL_ROW_STYLE: Record<string, string> = {
-  receita:   'bg-emerald-50/60 text-emerald-800',
-  deducao:   'bg-rose-50/60 text-rose-700',
-  despesa:   'bg-pink-50/60 text-slate-600',
-  subtotal:  'bg-slate-100 text-slate-600',
-  resultado: 'bg-amber-50 text-amber-900',
-  fluxo:     'bg-slate-100 text-slate-600',
+  receita:   'bg-white text-slate-600',
+  deducao:   'bg-white text-slate-600',
+  despesa:   'bg-white text-slate-600',
+  subtotal:  'bg-slate-50 text-slate-600',
+  resultado: 'bg-slate-50 text-slate-600',
+  fluxo:     'bg-slate-50 text-slate-600',
 };
 
 const DETAIL_STICKY_BG: Record<string, string> = {
-  receita:   'bg-emerald-50',
-  deducao:   'bg-rose-50',
-  despesa:   'bg-pink-50',
-  subtotal:  'bg-slate-100',
-  resultado: 'bg-amber-50',
-  fluxo:     'bg-slate-100',
+  receita:   'bg-white',
+  deducao:   'bg-white',
+  despesa:   'bg-white',
+  subtotal:  'bg-slate-50',
+  resultado: 'bg-slate-50',
+  fluxo:     'bg-slate-50',
 };
 
-function subtotalValueColor(value: number): string {
-  if (value > 0) return 'text-emerald-300';
-  if (value < 0) return 'text-rose-300';
-  return 'text-slate-400';
+function subtotalValueColor(value: number, rowStyle: string): string {
+  const dark = rowStyle === 'resultado' || rowStyle === 'fluxo';
+  if (value > 0) return dark ? 'text-emerald-300' : 'text-emerald-700';
+  if (value < 0) return dark ? 'text-rose-300' : 'text-rose-700';
+  return dark ? 'text-slate-300' : 'text-slate-500';
 }
 
 // Variation color: for expense rows (-), falling = good; for income/subtotals, rising = good
@@ -245,37 +246,36 @@ export function DrePage({ saidas, entradas }: Props) {
         <div className="overflow-x-auto">
           <table className="text-xs border-collapse w-full" style={{ minWidth: `${480 + dre.monthKeys.length * (130 + (showPctMonth ? 60 : 0) + (showVariation ? 64 : 0))}px` }}>
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-slate-800 border-b border-slate-700">
                 {/* Sticky: Descrição */}
-                <th className="text-left py-2.5 px-4 text-slate-500 font-semibold sticky left-0 z-20 bg-slate-50 border-r border-slate-200 w-64">
+                <th className="text-left py-2.5 px-4 text-slate-100 font-semibold sticky left-0 z-20 bg-slate-800 border-r border-slate-700 w-64">
                   Descrição
-                </th>
-                {/* Total */}
-                <th className="text-right py-2.5 px-4 text-slate-500 font-semibold min-w-[130px] border-r border-slate-100">
-                  Total
-                </th>
-                {/* % Entrada (total acumulado) */}
-                <th className="text-right py-2.5 px-3 text-indigo-500 font-semibold w-20 border-r border-slate-100">
-                  % Total
                 </th>
                 {/* Month columns */}
                 {dre.monthKeys.map((mk, i) => (
                   <>
-                    <th key={mk} className="text-right py-2.5 px-4 text-amber-600 font-semibold min-w-[130px] capitalize border-l border-slate-100">
+                    <th key={mk} className="text-right py-2.5 px-4 text-slate-100 font-semibold min-w-[130px] capitalize border-l border-slate-700">
                       {dre.monthLabels[i]}
                     </th>
                     {showPctMonth && (
-                      <th key={`pct-${mk}`} className="text-center py-2.5 px-2 text-indigo-400 font-semibold w-16 border-l border-slate-100">
+                      <th key={`pct-${mk}`} className="text-center py-2.5 px-2 text-slate-300 font-semibold w-16 border-l border-slate-700">
                         % Mês
                       </th>
                     )}
                     {showVariation && i < dre.monthKeys.length - 1 && (
-                      <th key={`var-${mk}`} className="text-center py-2.5 px-2 text-slate-400 font-semibold w-16 border-l border-slate-100">
+                      <th key={`var-${mk}`} className="text-center py-2.5 px-2 text-slate-300 font-semibold w-16 border-l border-slate-700">
                         Δ%
                       </th>
                     )}
                   </>
                 ))}
+                {/* Total + % Total — últimas colunas */}
+                <th className="text-right py-2.5 px-4 text-slate-100 font-semibold min-w-[130px] border-l border-slate-700">
+                  Total
+                </th>
+                <th className="text-right py-2.5 px-3 text-slate-300 font-semibold w-20 border-l border-slate-700">
+                  % Total
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -288,6 +288,7 @@ export function DrePage({ saidas, entradas }: Props) {
                 const detailStickyBg = DETAIL_STICKY_BG[line.rowStyle] ?? 'bg-white';
                 const canClick = line.transactions.length > 0;
                 const canExpand = line.expandable && line.groups.length > 0;
+                const isDark = line.rowStyle === 'resultado' || line.rowStyle === 'fluxo';
 
                 const mainRow = (
                   <tr
@@ -315,16 +316,6 @@ export function DrePage({ saidas, entradas }: Props) {
                         )}
                       </div>
                     </td>
-                    {/* Total */}
-                    <td className={`py-2.5 px-4 text-right font-semibold border-r border-slate-100/30 ${isSubtotal ? subtotalValueColor(line.total) : ''}`}>
-                      {line.total === 0 && !isSubtotal ? <span className="opacity-30">—</span> : fmtCurrency(line.total)}
-                    </td>
-                    {/* % da Entrada */}
-                    <td className={`py-2.5 px-3 text-right border-r border-slate-100/30 ${isSubtotal ? 'text-indigo-200' : 'text-indigo-500'}`}>
-                      {receitaBruta > 0 && line.total !== 0
-                        ? <span className="text-[11px] font-semibold">{((line.total / receitaBruta) * 100).toFixed(1)}%</span>
-                        : <span className="opacity-30">—</span>}
-                    </td>
                     {/* Month + % Mês + variation */}
                     {dre.monthKeys.map((mk, i) => {
                       const v = line.months[mk] ?? 0;
@@ -338,14 +329,14 @@ export function DrePage({ saidas, entradas }: Props) {
                         <>
                           <td
                             key={mk}
-                            className={`py-2.5 px-4 text-right border-l border-slate-100/30 ${isSubtotal ? subtotalValueColor(v) : ''} ${monthHasTxs && v !== 0 ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
+                            className={`py-2.5 px-4 text-right border-l border-slate-100/30 ${isSubtotal ? subtotalValueColor(v, line.rowStyle) : ''} ${monthHasTxs && v !== 0 ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
                             onClick={monthHasTxs && v !== 0 ? (e) => { e.stopPropagation(); openMonthModal(line, mk, dre.monthLabels[i]); } : undefined}
                             title={monthHasTxs && v !== 0 ? `Ver lançamentos de ${dre.monthLabels[i]}` : undefined}
                           >
                             {v === 0 ? <span className="opacity-30">—</span> : fmtCurrency(v)}
                           </td>
                           {showPctMonth && (
-                            <td key={`pct-${mk}`} className={`py-2.5 px-2 text-center border-l border-slate-100/20 w-16 ${isSubtotal ? 'text-indigo-200' : 'text-indigo-400'}`}>
+                            <td key={`pct-${mk}`} className={`py-2.5 px-2 text-center border-l border-slate-100/20 w-16 ${isDark ? 'text-indigo-200' : 'text-indigo-400'}`}>
                               {recMes > 0 && v !== 0
                                 ? <span className="text-[10px] font-semibold">{((v / recMes) * 100).toFixed(1)}%</span>
                                 : <span className="opacity-30 text-[10px]">—</span>}
@@ -359,6 +350,15 @@ export function DrePage({ saidas, entradas }: Props) {
                         </>
                       );
                     })}
+                    {/* Total + % Total — últimas colunas */}
+                    <td className={`py-2.5 px-4 text-right font-semibold border-l border-slate-200/60 ${isSubtotal ? subtotalValueColor(line.total, line.rowStyle) : ''}`}>
+                      {line.total === 0 && !isSubtotal ? <span className="opacity-30">—</span> : fmtCurrency(line.total)}
+                    </td>
+                    <td className={`py-2.5 px-3 text-right border-l border-slate-100/30 ${isDark ? 'text-indigo-200' : 'text-indigo-500'}`}>
+                      {receitaBruta > 0 && line.total !== 0
+                        ? <span className="text-[11px] font-semibold">{((line.total / receitaBruta) * 100).toFixed(1)}%</span>
+                        : <span className="opacity-30">—</span>}
+                    </td>
                   </tr>
                 );
 
@@ -373,14 +373,6 @@ export function DrePage({ saidas, entradas }: Props) {
                         <td className={`py-1.5 px-4 sticky left-0 z-10 ${detailStickyBg} border-r border-slate-200/40 pl-8`}>
                           <span className="opacity-70">·</span> {g.subcategoria}
                           {g.transactions.length > 0 && <span className="ml-1 text-[9px] opacity-40">[ver]</span>}
-                        </td>
-                        {/* Total */}
-                        <td className="py-1.5 px-4 text-right border-r border-slate-100/20">{fmtVal(g.total)}</td>
-                        {/* % da Entrada */}
-                        <td className="py-1.5 px-3 text-right border-r border-slate-100/20 text-indigo-400">
-                          {receitaBruta > 0 && g.total !== 0
-                            ? <span className="text-[10px]">{((g.total / receitaBruta) * 100).toFixed(1)}%</span>
-                            : <span className="opacity-30 text-[10px]">—</span>}
                         </td>
                         {/* Month + % Mês + variation (detail rows) */}
                         {dre.monthKeys.map((mk, i) => {
@@ -416,6 +408,13 @@ export function DrePage({ saidas, entradas }: Props) {
                             </>
                           );
                         })}
+                        {/* Total + % Total — últimas colunas */}
+                        <td className="py-1.5 px-4 text-right border-l border-slate-200/60">{fmtVal(g.total)}</td>
+                        <td className="py-1.5 px-3 text-right border-l border-slate-100/20 text-indigo-400">
+                          {receitaBruta > 0 && g.total !== 0
+                            ? <span className="text-[10px]">{((g.total / receitaBruta) * 100).toFixed(1)}%</span>
+                            : <span className="opacity-30 text-[10px]">—</span>}
+                        </td>
                       </tr>
                     ))
                   : [];
