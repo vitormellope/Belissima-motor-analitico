@@ -2,6 +2,10 @@ import type { Transaction } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Saldo inicial de caixa em jan/2026 (soma das 3 contas: Bradesco + Itaú + Tesouraria).
+// Semeia o Fluxo de Caixa acumulado — não é dividido por conta nos cálculos.
+export const SALDO_INICIAL_CAIXA = 264853.71 + 141429.42 + 172606.95; // R$ 578.890,08
+
 export type DRECategoria = 'CUSTO' | 'DESPESA_OPERACIONAL' | 'DESPESA_ADMINISTRATIVA' | 'FINANCEIRO' | 'INVESTIMENTO' | 'Outros';
 
 export interface DREItem {
@@ -105,6 +109,7 @@ export interface DREResult {
   monthKeys: string[];
   monthLabels: string[];
   unmapped: { natureza: string; total: number; months: Record<string, number> }[];
+  saldoInicial: number;
 }
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
@@ -234,9 +239,10 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
   const mL16 = sumByMonth(grpOutrasSaidas);
   const mL17 = mSub(mSub(mSub(mL12, mL13), mL14), mL16); // Resultado do Mês
 
-  // Fluxo de Caixa: acumulado progressivo — cada mês = L17 deste mês + Fluxo do mês anterior
+  // Fluxo de Caixa: acumulado progressivo, partindo do saldo inicial de caixa (jan/2026)
+  // Cada mês = saldo inicial + soma dos Resultados (L17) até o mês
   const mL18 = emptyMap();
-  let fluxoAcumulado = 0;
+  let fluxoAcumulado = SALDO_INICIAL_CAIXA;
   for (const mk of monthKeys) {
     fluxoAcumulado += mL17[mk] ?? 0;
     mL18[mk] = fluxoAcumulado;
@@ -281,5 +287,5 @@ export function buildDRE(saidas: Transaction[], entradas: Transaction[]): DRERes
     { linha: 18, descricao: 'Fluxo de Caixa',                          sinal: null, rowStyle: 'fluxo',     total: fluxoAcumulado,             months: mL18, groups: [],                          transactions: [],                          expandable: false },
   ];
 
-  return { lines, monthKeys, monthLabels, unmapped };
+  return { lines, monthKeys, monthLabels, unmapped, saldoInicial: SALDO_INICIAL_CAIXA };
 }

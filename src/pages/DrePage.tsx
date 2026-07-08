@@ -410,7 +410,7 @@ export function DrePage({ saidas, entradas }: Props) {
         </div>
 
         <div className="px-5 py-2.5 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50/50">
-          Clique em linhas de dados para ver os lançamentos · Δ% = variação mês a mês = (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100
+          Clique em linhas de dados para ver os lançamentos · Δ% = variação mês a mês = (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100 · Fluxo de Caixa parte do saldo inicial de {fmtCurrency(dre.saldoInicial)} (jan/2026, soma das 3 contas)
         </div>
       </div>
 
