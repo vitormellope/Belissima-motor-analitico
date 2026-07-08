@@ -155,6 +155,12 @@ export function DrePage({ saidas, entradas }: Props) {
 
   const hasData = saidas.length > 0 || entradas.length > 0;
 
+  // Coluna de abertura (Dez/2025): só o Fluxo de Caixa exibe o saldo inicial; o resto fica vazio.
+  const OPENING = '2025-12';
+  const colKeys = [OPENING, ...dre.monthKeys];
+  const colLabel = (mk: string) =>
+    mk === OPENING ? 'dezembro 2025' : dre.monthLabels[dre.monthKeys.indexOf(mk)];
+
   const L = (n: number) => dre.lines.find((l) => l.linha === n);
   const receitaBruta = L(1)?.total ?? 0;
   const receitaBrutaByMonth = useMemo(() => L(1)?.months ?? {}, [dre]);
@@ -247,25 +253,25 @@ export function DrePage({ saidas, entradas }: Props) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="text-xs border-collapse w-full" style={{ minWidth: `${480 + dre.monthKeys.length * (130 + (showPctMonth ? 60 : 0) + (showVariation ? 64 : 0))}px` }}>
+          <table className="text-xs border-collapse w-full" style={{ minWidth: `${480 + colKeys.length * (130 + (showPctMonth ? 60 : 0) + (showVariation ? 64 : 0))}px` }}>
             <thead>
               <tr className="bg-slate-800 border-b border-slate-700">
                 {/* Sticky: Descrição */}
-                <th className="text-left py-2.5 px-4 text-slate-100 font-semibold sticky left-0 z-20 bg-slate-800 border-r border-slate-700 w-64">
+                <th className="text-left py-2.5 px-4 text-slate-100 font-semibold sticky left-0 z-20 bg-slate-800 border-r border-slate-700 min-w-[248px] whitespace-nowrap">
                   Descrição
                 </th>
                 {/* Month columns */}
-                {dre.monthKeys.map((mk, i) => (
+                {colKeys.map((mk, i) => (
                   <>
                     <th key={mk} className="text-right py-2.5 px-4 text-slate-100 font-semibold min-w-[130px] capitalize border-l border-slate-700">
-                      {dre.monthLabels[i]}
+                      {colLabel(mk)}
                     </th>
                     {showPctMonth && (
                       <th key={`pct-${mk}`} className="text-center py-2.5 px-2 text-slate-300 font-semibold w-16 border-l border-slate-700">
                         % Mês
                       </th>
                     )}
-                    {showVariation && i < dre.monthKeys.length - 1 && (
+                    {showVariation && i < colKeys.length - 1 && (
                       <th key={`var-${mk}`} className="text-center py-2.5 px-2 text-slate-300 font-semibold w-16 border-l border-slate-700">
                         Δ%
                       </th>
@@ -313,18 +319,21 @@ export function DrePage({ saidas, entradas }: Props) {
                               : <ChevronRight size={11} className="opacity-40" />
                           )}
                         </span>
-                        <span className={`${isSubtotal ? 'font-bold' : ''} leading-snug`}>{line.descricao}</span>
+                        <span className={`${isSubtotal ? 'font-bold' : ''} leading-snug whitespace-nowrap`}>{line.descricao}</span>
                         {canClick && !canExpand && (
                           <span className="ml-1 text-[9px] opacity-40">[ver]</span>
                         )}
                       </div>
                     </td>
                     {/* Month + % Mês + variation */}
-                    {dre.monthKeys.map((mk, i) => {
-                      const v = line.months[mk] ?? 0;
-                      const varV = momVariation(line.months, i);
-                      const recMes = receitaBrutaByMonth[mk] ?? 0;
-                      const monthHasTxs = line.transactions.some((t) => {
+                    {colKeys.map((mk, i) => {
+                      const isDez = mk === OPENING;
+                      // Dez/2025: só o Fluxo de Caixa mostra o saldo inicial; demais linhas vazias
+                      const v = isDez ? (line.rowStyle === 'fluxo' ? dre.saldoInicial : 0) : (line.months[mk] ?? 0);
+                      const realIdx = dre.monthKeys.indexOf(mk);
+                      const varV = isDez ? null : momVariation(line.months, realIdx);
+                      const recMes = isDez ? 0 : (receitaBrutaByMonth[mk] ?? 0);
+                      const monthHasTxs = !isDez && line.transactions.some((t) => {
                         if (!t.data) return false;
                         return `${t.data.getFullYear()}-${String(t.data.getMonth() + 1).padStart(2, '0')}` === mk;
                       });
@@ -333,8 +342,8 @@ export function DrePage({ saidas, entradas }: Props) {
                           <td
                             key={mk}
                             className={`py-2.5 px-4 text-right border-l border-slate-100/30 ${isSubtotal ? subtotalValueColor(v, line.rowStyle) : ''} ${monthHasTxs && v !== 0 ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
-                            onClick={monthHasTxs && v !== 0 ? (e) => { e.stopPropagation(); openMonthModal(line, mk, dre.monthLabels[i]); } : undefined}
-                            title={monthHasTxs && v !== 0 ? `Ver lançamentos de ${dre.monthLabels[i]}` : undefined}
+                            onClick={monthHasTxs && v !== 0 ? (e) => { e.stopPropagation(); openMonthModal(line, mk, colLabel(mk)); } : undefined}
+                            title={monthHasTxs && v !== 0 ? `Ver lançamentos de ${colLabel(mk)}` : undefined}
                           >
                             {v === 0 ? <span className="opacity-30">—</span> : fmtCurrency(v)}
                           </td>
@@ -345,7 +354,7 @@ export function DrePage({ saidas, entradas }: Props) {
                                 : <span className="opacity-30 text-[10px]">—</span>}
                             </td>
                           )}
-                          {showVariation && i < dre.monthKeys.length - 1 && (
+                          {showVariation && i < colKeys.length - 1 && (
                             <td key={`var-${mk}`} className="py-2.5 px-2 text-center border-l border-slate-100/20 w-16">
                               {varV !== null ? fmtVar(varV, line.sinal) : <span className="text-slate-300 text-[10px]">—</span>}
                             </td>
@@ -373,16 +382,18 @@ export function DrePage({ saidas, entradas }: Props) {
                         onClick={() => openGroupModal(line, g)}
                       >
                         {/* Subcategoria — sticky left-0 */}
-                        <td className={`py-1.5 px-4 sticky left-0 z-10 ${detailStickyBg} border-r border-slate-200/40 pl-8`}>
+                        <td className={`py-1.5 px-4 sticky left-0 z-10 ${detailStickyBg} border-r border-slate-200/40 pl-8 whitespace-nowrap`}>
                           <span className="opacity-70">·</span> {g.subcategoria}
                           {g.transactions.length > 0 && <span className="ml-1 text-[9px] opacity-40">[ver]</span>}
                         </td>
                         {/* Month + % Mês + variation (detail rows) */}
-                        {dre.monthKeys.map((mk, i) => {
-                          const v = g.months[mk] ?? 0;
-                          const varV = momVariation(g.months, i);
-                          const recMes = receitaBrutaByMonth[mk] ?? 0;
-                          const groupMonthHasTxs = g.transactions.some((t) => {
+                        {colKeys.map((mk, i) => {
+                          const isDez = mk === OPENING;
+                          const v = isDez ? 0 : (g.months[mk] ?? 0);
+                          const realIdx = dre.monthKeys.indexOf(mk);
+                          const varV = isDez ? null : momVariation(g.months, realIdx);
+                          const recMes = isDez ? 0 : (receitaBrutaByMonth[mk] ?? 0);
+                          const groupMonthHasTxs = !isDez && g.transactions.some((t) => {
                             if (!t.data) return false;
                             return `${t.data.getFullYear()}-${String(t.data.getMonth() + 1).padStart(2, '0')}` === mk;
                           });
@@ -391,8 +402,8 @@ export function DrePage({ saidas, entradas }: Props) {
                               <td
                                 key={mk}
                                 className={`py-1.5 px-4 text-right border-l border-slate-100/20 ${groupMonthHasTxs && v !== 0 ? 'cursor-pointer hover:opacity-75 transition-opacity' : ''}`}
-                                onClick={groupMonthHasTxs && v !== 0 ? (e) => { e.stopPropagation(); openGroupMonthModal(line, g, mk, dre.monthLabels[i]); } : undefined}
-                                title={groupMonthHasTxs && v !== 0 ? `Ver lançamentos de ${dre.monthLabels[i]}` : undefined}
+                                onClick={groupMonthHasTxs && v !== 0 ? (e) => { e.stopPropagation(); openGroupMonthModal(line, g, mk, colLabel(mk)); } : undefined}
+                                title={groupMonthHasTxs && v !== 0 ? `Ver lançamentos de ${colLabel(mk)}` : undefined}
                               >
                                 {fmtVal(v)}
                               </td>
@@ -403,7 +414,7 @@ export function DrePage({ saidas, entradas }: Props) {
                                     : <span className="opacity-30 text-[10px]">—</span>}
                                 </td>
                               )}
-                              {showVariation && i < dre.monthKeys.length - 1 && (
+                              {showVariation && i < colKeys.length - 1 && (
                                 <td key={`var-${mk}`} className="py-1.5 px-2 text-center border-l border-slate-100/10">
                                   {varV !== null ? fmtVar(varV, line.sinal) : <span className="text-slate-300 text-[10px]">—</span>}
                                 </td>
@@ -429,7 +440,7 @@ export function DrePage({ saidas, entradas }: Props) {
         </div>
 
         <div className="px-5 py-2.5 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50/50">
-          Clique em linhas de dados para ver os lançamentos · Δ% = variação mês a mês = (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100 · Fluxo de Caixa parte do saldo inicial de {fmtCurrency(dre.saldoInicial)} (jan/2026, soma das 3 contas)
+          Clique em linhas de dados para ver os lançamentos · Δ% = variação mês a mês = (Mês Atual − Mês Anterior) ÷ Mês Anterior × 100 · Coluna dez/2025 = saldo inicial de caixa ({fmtCurrency(dre.saldoInicial)}, soma das 3 contas); o Fluxo de Caixa acumula os meses a partir dela
         </div>
       </div>
 
