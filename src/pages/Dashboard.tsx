@@ -11,7 +11,7 @@ import {
   getTopFornecedores, buildTimeSeries, calcVariation, fmtCurrency,
   chartGranularity, autoGranularity, getDayOfWeekTotals, periodKey,
 } from '../utils/analytics';
-import { DRE_MAPEAMENTO } from '../utils/dreMapping';
+import { DRE_MAPEAMENTO, SALDO_INICIAL_CAIXA } from '../utils/dreMapping';
 import { KPICard } from '../components/KPICard';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { TransactionModal } from '../components/TransactionModal';
@@ -19,7 +19,7 @@ import { InfoTooltip } from '../components/InfoTooltip';
 import {
   TrendingDown, TrendingUp, Wallet, BarChart2,
   ArrowLeftRight, Store, CreditCard, CalendarDays,
-  GitCompare, ShoppingCart,
+  GitCompare, ShoppingCart, Landmark,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -308,11 +308,20 @@ export function Dashboard({ saidas, entradas }: Props) {
   })), [dowSaidas, dowEntradas]);
 
   // Time series — with saldo as separate field for bar rendering
-  const timeSeries = useMemo(
+  const timeSeriesRaw = useMemo(
     () => buildTimeSeries(saidas, entradas, gran, start, end),
     [saidas, entradas, gran, start, end]
   );
+  // Caixa acumulado: parte do saldo inicial e soma (entradas − saídas) de cada intervalo
+  const timeSeries = useMemo(() => {
+    let acc = SALDO_INICIAL_CAIXA;
+    return timeSeriesRaw.map((p) => {
+      acc += p.entradas - p.saidas;
+      return { ...p, caixaAcum: acc };
+    });
+  }, [timeSeriesRaw]);
   const showLabels = timeSeries.length <= 14;
+  const saldoCaixa = SALDO_INICIAL_CAIXA + saldo;
 
   const hasData = saidas.length > 0 || entradas.length > 0;
   const currentLabel = formatRangeLabel(start, end);
@@ -397,7 +406,7 @@ export function Dashboard({ saidas, entradas }: Props) {
       {hasData && (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <KPICard label="Total Saídas" value={totalSaidas}
               variation={calcVariation(totalSaidas, totalSaidasPrev)} format="currency"
               tooltip={`Soma do campo 'V. Realizado' de todos os lançamentos de saída no período (${currentLabel}). Variação = (${fmtCurrency(totalSaidas)} − ${fmtCurrency(totalSaidasPrev)}) ÷ ${fmtCurrency(totalSaidasPrev)} × 100 = comparação com período anterior equivalente. ▲ = saídas aumentaram (atenção).`}
@@ -409,8 +418,12 @@ export function Dashboard({ saidas, entradas }: Props) {
               accent="text-emerald-600" icon={<TrendingUp size={14} />}
             />
             <KPICard label="Saldo Operacional" value={saldo} format="currency"
-              tooltip={`Saldo = Entradas − Saídas = ${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalSaidas)} = ${fmtCurrency(saldo)}. Positivo: entradas cobrem as saídas (superávit). Negativo: saídas superam entradas (déficit — atenção ao caixa).`}
+              tooltip={`Saldo Operacional = Entradas − Saídas do período = ${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalSaidas)} = ${fmtCurrency(saldo)}. NÃO inclui o saldo inicial (é só o resultado do período). Positivo: entradas cobrem as saídas (superávit). Negativo: déficit.`}
               accent={saldo >= 0 ? 'text-emerald-600' : 'text-red-500'} icon={<Wallet size={14} />}
+            />
+            <KPICard label="Saldo de Caixa" value={saldoCaixa} format="currency"
+              tooltip={`Posição de caixa ao fim do período = Saldo inicial (${fmtCurrency(SALDO_INICIAL_CAIXA)}) + Saldo Operacional (${fmtCurrency(saldo)}) = ${fmtCurrency(saldoCaixa)}. É o dinheiro que sobra em caixa considerando o saldo de abertura de jan/2026 (soma das 3 contas).`}
+              accent={saldoCaixa >= 0 ? 'text-sky-600' : 'text-red-500'} icon={<Landmark size={14} />}
             />
             <KPICard label="Lançamentos" value={saidasCur.length + entradasCur.length} format="number"
               tooltip={`Total de registros no período: ${saidasCur.length} lançamentos de saída + ${entradasCur.length} dias de entrada = ${saidasCur.length + entradasCur.length} registros.`}
@@ -433,7 +446,7 @@ export function Dashboard({ saidas, entradas }: Props) {
             <div className="flex items-center gap-2 mb-3">
               <BarChart2 size={16} className="text-rose-500" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Evolução Temporal</h2>
-              <InfoTooltip text={`Linhas: Saídas (vermelho) e Entradas (verde) acumuladas por ${gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : 'mês'}. Barras: Saldo = Entradas − Saídas. Verde ↑ = superávit naquele intervalo. Vermelho ↓ = déficit. Rótulos visíveis quando há ≤ 14 pontos.`} />
+              <InfoTooltip text={`Linhas: Saídas (vermelho) e Entradas (verde) por ${gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : 'mês'}. Barras: Saldo do intervalo = Entradas − Saídas (verde ↑ superávit, vermelho ↓ déficit). Linha azul tracejada: Caixa acumulado, que parte do saldo inicial de ${fmtCurrency(SALDO_INICIAL_CAIXA)} e soma o saldo de cada intervalo — é a posição de caixa ao longo do tempo.`} />
               <span className="ml-auto text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
                 Agrupado por {gran === 'dia' ? 'dia' : gran === 'semana' ? 'semana' : gran === 'mes' ? 'mês' : 'trimestre'}
               </span>
@@ -446,6 +459,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400/60 inline-block" />Saldo positivo (↑)</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-rose-400/60 inline-block" />Saldo negativo (↓)</span>
+                  <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-indigo-500 inline-block rounded" style={{ borderTop: '2px dashed #6366f1', background: 'transparent' }} />Caixa acumulado (parte do saldo inicial)</span>
                 </>
               )}
             </div>
@@ -518,6 +532,10 @@ export function Dashboard({ saidas, entradas }: Props) {
                   <Line type="monotone" dataKey="entradas" name="Entradas" stroke="#10b981" strokeWidth={2.5} dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none">
                     {showLabels && <LabelList dataKey="entradas" position="top" formatter={rotuloFmt} style={{ fontSize: 9, fill: '#10b981', fontWeight: 700 }} />}
                   </Line>
+                )}
+                {/* Caixa acumulado — parte do saldo inicial e rola mês a mês */}
+                {saidas.length > 0 && entradas.length > 0 && (
+                  <Line type="monotone" dataKey="caixaAcum" name="Caixa acumulado" stroke="#6366f1" strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: showLabels ? 3 : 2 }} activeDot={{ r: 5 }} legendType="none" />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
