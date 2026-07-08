@@ -229,7 +229,7 @@ export function DrePage({ saidas, entradas }: Props) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="text-xs border-collapse" style={{ minWidth: `${480 + dre.monthKeys.length * (130 + (showPctMonth ? 60 : 0) + (showVariation ? 64 : 0))}px` }}>
+          <table className="text-xs border-collapse w-full" style={{ minWidth: `${480 + dre.monthKeys.length * (130 + (showPctMonth ? 60 : 0) + (showVariation ? 64 : 0))}px` }}>
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 {/* Sticky: Descrição */}
