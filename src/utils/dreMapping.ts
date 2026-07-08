@@ -66,6 +66,7 @@ export const DRE_MAPEAMENTO: DREItem[] = [
   { natureza: 'SEGURO VEICULOS', categoria: 'DESPESA_ADMINISTRATIVA', subcategoria: 'Frota/Seguros' },
   { natureza: 'IPVA', categoria: 'DESPESA_ADMINISTRATIVA', subcategoria: 'Frota/Impostos' },
   { natureza: 'LICENCIAMENTO ANUAL', categoria: 'DESPESA_ADMINISTRATIVA', subcategoria: 'Frota/Documentacao' },
+  { natureza: 'CONSERTOS E MANUTENÇÃO DE VEICULOS', categoria: 'DESPESA_ADMINISTRATIVA', subcategoria: 'Frota/Manutenção' },
   { natureza: 'DESPESAS VIAGEM', categoria: 'DESPESA_ADMINISTRATIVA', subcategoria: 'Viagens' },
   { natureza: 'DAS SIMPLES NACIONAL', categoria: 'FINANCEIRO', subcategoria: 'Tributos sobre faturamento' },
   { natureza: 'IMPOSTOS E TAXAS', categoria: 'FINANCEIRO', subcategoria: 'Tributos diversos' },
