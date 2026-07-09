@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import type { Transaction, PaymentMethodSummary } from '../types';
+import type { Transaction, PaymentMethodSummary, BankBalance } from '../types';
+
+interface BankBalanceRow {
+  ref_date: string;
+  mes: string;
+  conta: string;
+  saldo: number;
+}
 
 interface TransactionRow {
   tipo: string | null;
@@ -61,6 +68,7 @@ export function useSupabaseData() {
   const [saidas, setSaidas] = useState<Transaction[]>([]);
   const [entradas, setEntradas] = useState<Transaction[]>([]);
   const [paymentSummary, setPaymentSummary] = useState<PaymentMethodSummary[]>([]);
+  const [bankBalances, setBankBalances] = useState<BankBalance[]>([]);
   const [lastImportedAt, setLastImportedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -88,6 +96,17 @@ export function useSupabaseData() {
       const summaryRes = await supabase.from('payment_methods_summary').select('*');
       if (summaryRes.error) throw summaryRes.error;
 
+      // Saldos bancários (extrato). Tolerante: se a tabela ainda não existir, segue vazio.
+      const balRes = await supabase.from('bank_balances').select('*').order('ref_date', { ascending: true });
+      if (balRes.error) {
+        console.warn('bank_balances indisponível (tabela criada?):', balRes.error.message);
+        setBankBalances([]);
+      } else {
+        setBankBalances((balRes.data ?? []).map((r: BankBalanceRow) => ({
+          refDate: r.ref_date, mes: r.mes, conta: r.conta, saldo: Number(r.saldo),
+        })));
+      }
+
       setSaidas(rows.filter((r) => r.source === 'saidas').map(toTransaction));
       setEntradas(rows.filter((r) => r.source === 'entradas').map(toTransaction));
       setPaymentSummary((summaryRes.data ?? []).map(toPaymentSummary));
@@ -109,5 +128,5 @@ export function useSupabaseData() {
     load();
   }, [load]);
 
-  return { saidas, entradas, paymentSummary, lastImportedAt, loading, error, refresh: load };
+  return { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, refresh: load };
 }

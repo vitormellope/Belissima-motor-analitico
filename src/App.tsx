@@ -4,14 +4,15 @@ import { RadarVariacao } from './pages/RadarVariacao';
 import { DrePage } from './pages/DrePage';
 import { RadarMargens } from './pages/RadarMargens';
 import { ResumoVendasPage } from './pages/ResumoVendasPage';
+import { ConciliacaoPage } from './pages/ConciliacaoPage';
 import { LoginPage } from './pages/LoginPage';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import {
   LayoutDashboard, BarChart3, Radar, TrendingUp,
-  LogOut, Store, ChevronRight, ChevronLeft, CreditCard, RefreshCw, AlertTriangle,
+  LogOut, Store, ChevronRight, ChevronLeft, CreditCard, RefreshCw, AlertTriangle, Scale,
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'resumo-vendas';
+type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'resumo-vendas' | 'conciliacao';
 
 const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard',      label: 'Visão Geral',                  icon: <LayoutDashboard size={15} /> },
@@ -19,6 +20,7 @@ const NAV_TABS: { id: Page; label: string; icon: React.ReactNode }[] = [
   { id: 'radar',          label: 'Radar de Saídas',              icon: <Radar size={15} /> },
   { id: 'margens',        label: 'Radar de Margens',             icon: <TrendingUp size={15} /> },
   { id: 'resumo-vendas',  label: 'Resumo de Vendas',             icon: <CreditCard size={15} /> },
+  { id: 'conciliacao',    label: 'Conciliação',                  icon: <Scale size={15} /> },
 ];
 
 export default function App() {
@@ -28,7 +30,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
 
-  const { saidas, entradas, paymentSummary, lastImportedAt, loading, error, refresh } = useSupabaseData();
+  const { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, refresh } = useSupabaseData();
 
   const handleLogout = () => {
     sessionStorage.removeItem('belissima_auth');
@@ -169,6 +171,7 @@ export default function App() {
           {activePage === 'dre'           && <DrePage saidas={saidas} entradas={entradas} />}
           {activePage === 'margens'       && <RadarMargens saidas={saidas} entradas={entradas} />}
           {activePage === 'resumo-vendas' && <ResumoVendasPage paymentSummary={paymentSummary} />}
+          {activePage === 'conciliacao'   && <ConciliacaoPage saidas={saidas} entradas={entradas} bankBalances={bankBalances} />}
         </main>
       </div>
     </div>

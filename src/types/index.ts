@@ -21,6 +21,13 @@ export interface PaymentMethodSummary {
   valor: number;
 }
 
+export interface BankBalance {
+  refDate: string; // YYYY-MM-DD (data do saldo)
+  mes: string;     // YYYY-MM (para bucketing por mês)
+  conta: string;   // TESOURARIA | BRADESCO | ITAU
+  saldo: number;
+}
+
 export type PeriodType = 'dia' | 'semana' | 'mes' | 'trimestre' | 'ano';
 
 export type PeriodMode = 'preset' | 'custom';
