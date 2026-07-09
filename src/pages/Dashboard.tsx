@@ -381,6 +381,12 @@ export function Dashboard({ saidas, entradas }: Props) {
     });
   }
 
+  // Abre a base completa que alimenta um gráfico (todos os lançamentos)
+  function openBaseModal(title: string, txs: Transaction[]) {
+    if (!txs.length) return;
+    setModal({ title, subtitle: `${currentLabel} · ${txs.length} lançamentos`, transactions: txs });
+  }
+
   return (
     <div className="space-y-5">
       <PeriodFilter
@@ -407,15 +413,15 @@ export function Dashboard({ saidas, entradas }: Props) {
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <KPICard label="Total Saídas" value={totalSaidas}
-              variation={calcVariation(totalSaidas, totalSaidasPrev)} format="currency"
-              tooltip={`Soma do campo 'V. Realizado' de todos os lançamentos de saída no período (${currentLabel}). Variação = (${fmtCurrency(totalSaidas)} − ${fmtCurrency(totalSaidasPrev)}) ÷ ${fmtCurrency(totalSaidasPrev)} × 100 = comparação com período anterior equivalente. ▲ = saídas aumentaram (atenção).`}
-              accent="text-rose-600" icon={<TrendingDown size={14} />}
-            />
             <KPICard label="Total Entradas" value={totalEntradas}
               variation={calcVariation(totalEntradas, totalEntradasPrev)} format="currency"
               tooltip={`Soma do campo 'Total' do quadro de vendas no período (${currentLabel}). Variação = (${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalEntradasPrev)}) ÷ ${fmtCurrency(totalEntradasPrev)} × 100. ▲ = entradas cresceram (positivo).`}
               accent="text-emerald-600" icon={<TrendingUp size={14} />}
+            />
+            <KPICard label="Total Saídas" value={totalSaidas}
+              variation={calcVariation(totalSaidas, totalSaidasPrev)} format="currency"
+              tooltip={`Soma do campo 'V. Realizado' de todos os lançamentos de saída no período (${currentLabel}). Variação = (${fmtCurrency(totalSaidas)} − ${fmtCurrency(totalSaidasPrev)}) ÷ ${fmtCurrency(totalSaidasPrev)} × 100 = comparação com período anterior equivalente. ▲ = saídas aumentaram (atenção).`}
+              accent="text-rose-600" icon={<TrendingDown size={14} />}
             />
             <KPICard label="Saldo Operacional" value={saldo} format="currency"
               tooltip={`Saldo Operacional = Entradas − Saídas do período = ${fmtCurrency(totalEntradas)} − ${fmtCurrency(totalSaidas)} = ${fmtCurrency(saldo)}. NÃO inclui o saldo inicial (é só o resultado do período). Positivo: entradas cobrem as saídas (superávit). Negativo: déficit.`}
@@ -472,39 +478,38 @@ export function Dashboard({ saidas, entradas }: Props) {
                 <YAxis tickFormatter={cfmt} tick={{ fontSize: 11, fill: '#94a3b8' }} width={64} />
                 <Tooltip
                   content={({ active, payload, label }) =>
-                    active && payload?.length ? (
-                      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[220px]">
-                        <p className="font-bold text-slate-700 mb-2">{label}</p>
-                        {payload.map((p, i) => (
-                          <div key={i} className="flex items-center justify-between gap-4 py-0.5">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-sm" style={{ background: p.color }} />
-                              <span className="text-slate-500">{p.name}</span>
-                            </span>
-                            <span className="font-bold text-slate-800">{fmtCurrency(p.value as number)}</span>
-                          </div>
-                        ))}
-                        {(() => {
-                          const s = payload.find((p) => p.dataKey === 'saidas');
-                          const e = payload.find((p) => p.dataKey === 'entradas');
-                          if (s && e) {
-                            const saldo = (e.value as number) - (s.value as number);
-                            return (
-                              <div className="mt-2 pt-2 border-t border-slate-100">
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">Saldo = R−D</span>
-                                  <span className={`font-bold ${saldo >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                    {fmtCurrency(saldo)}
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-slate-400 mt-1">Fórmula: {fmtCurrency(e.value as number)} − {fmtCurrency(s.value as number)}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    ) : null
+                    active && payload?.length ? (() => {
+                      // Ordem fixa: Entrada → Saída → Saldo → Caixa acumulado
+                      const val = (key: string) => {
+                        const p = payload.find((x) => x.dataKey === key);
+                        return p ? (p.value as number) : undefined;
+                      };
+                      const ent = val('entradas');
+                      const sai = val('saidas');
+                      const cax = val('caixaAcum');
+                      const saldoV = (ent ?? 0) - (sai ?? 0);
+                      const Row = ({ cor, nome, valor, bold }: { cor: string; nome: string; valor: number; bold?: boolean }) => (
+                        <div className="flex items-center justify-between gap-4 py-0.5">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-sm" style={{ background: cor }} />
+                            <span className="text-slate-500">{nome}</span>
+                          </span>
+                          <span className={`font-bold ${bold ? (valor >= 0 ? 'text-emerald-600' : 'text-red-500') : 'text-slate-800'}`}>{fmtCurrency(valor)}</span>
+                        </div>
+                      );
+                      return (
+                        <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[220px]">
+                          <p className="font-bold text-slate-700 mb-2">{label}</p>
+                          {ent !== undefined && <Row cor="#10b981" nome="Entradas" valor={ent} />}
+                          {sai !== undefined && <Row cor="#f43f5e" nome="Saídas" valor={sai} />}
+                          {ent !== undefined && sai !== undefined && <Row cor={saldoV >= 0 ? '#10b981' : '#f43f5e'} nome="Saldo (E − S)" valor={saldoV} bold />}
+                          {cax !== undefined && <Row cor="#6366f1" nome="Caixa acumulado" valor={cax} />}
+                          {ent !== undefined && sai !== undefined && (
+                            <p className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-100">Saldo = Entradas − Saídas = {fmtCurrency(ent)} − {fmtCurrency(sai)}</p>
+                          )}
+                        </div>
+                      );
+                    })() : null
                   }
                 />
                 <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
@@ -603,18 +608,14 @@ export function Dashboard({ saidas, entradas }: Props) {
                     <BarChart2 size={15} className="text-rose-500" />
                     <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Operacionais (OPEX)</h2>
                     <TypeBadge type="saida" />
-                    <InfoTooltip text="Saídas classificadas como Operacionais no mapeamento DRE: pessoal, ocupação, utilidades, marketing, logística, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
+                    <InfoTooltip text="Saídas classificadas como Operacionais no mapeamento DRE: pessoal, ocupação, utilidades, marketing, logística, etc. Top 10 por valor realizado. Clique no gráfico para abrir a base completa de OPEX." />
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(240, opexNat.slice(0, 10).length * 30)}>
                     <BarChart
                       data={opexNat.slice(0, 10)}
                       layout="vertical"
                       margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
-                      onClick={(data: unknown) => {
-                        const d = data as { activePayload?: { payload?: { natureza?: string } }[] } | null;
-                        const nat = d?.activePayload?.[0]?.payload?.natureza;
-                        if (nat) openNaturezaModal(nat);
-                      }}
+                      onClick={() => openBaseModal('Despesas Operacionais (OPEX)', saidasOPEX)}
                       style={{ cursor: 'pointer' }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -634,7 +635,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                               const v = ((cur - prev) / prev) * 100;
                               return <p className={`text-[11px] font-bold mt-1 ${v > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{v > 0 ? '▲' : '▼'} {Math.abs(v).toFixed(1)}% vs período anterior</p>;
                             })()}
-                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver lançamentos</p>
+                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver a base completa (todos os lançamentos OPEX)</p>
                           </div>
                         ) : null
                       } />
@@ -656,18 +657,14 @@ export function Dashboard({ saidas, entradas }: Props) {
                     <BarChart2 size={15} className="text-violet-500" />
                     <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Administrativas (SG&A)</h2>
                     <TypeBadge type="saida" />
-                    <InfoTooltip text="Saídas classificadas como Administrativas no mapeamento DRE: contabilidade, TI, frota, viagens, associações, etc. Top 10 por valor realizado. Clique para ver lançamentos." />
+                    <InfoTooltip text="Saídas classificadas como Administrativas no mapeamento DRE: contabilidade, TI, frota, viagens, associações, etc. Top 10 por valor realizado. Clique no gráfico para abrir a base completa de SG&A." />
                   </div>
                   <ResponsiveContainer width="100%" height={Math.max(240, sgaNat.slice(0, 10).length * 30)}>
                     <BarChart
                       data={sgaNat.slice(0, 10)}
                       layout="vertical"
                       margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
-                      onClick={(data: unknown) => {
-                        const d = data as { activePayload?: { payload?: { natureza?: string } }[] } | null;
-                        const nat = d?.activePayload?.[0]?.payload?.natureza;
-                        if (nat) openNaturezaModal(nat);
-                      }}
+                      onClick={() => openBaseModal('Despesas de Vendas, Gerais e Administrativas (SG&A)', saidasSGA)}
                       style={{ cursor: 'pointer' }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -687,7 +684,7 @@ export function Dashboard({ saidas, entradas }: Props) {
                               const v = ((cur - prev) / prev) * 100;
                               return <p className={`text-[11px] font-bold mt-1 ${v > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{v > 0 ? '▲' : '▼'} {Math.abs(v).toFixed(1)}% vs período anterior</p>;
                             })()}
-                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver lançamentos</p>
+                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver a base completa (todos os lançamentos SG&A)</p>
                           </div>
                         ) : null
                       } />
@@ -770,14 +767,26 @@ export function Dashboard({ saidas, entradas }: Props) {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between px-1">
+                <span className="text-xs font-semibold text-slate-500">Total (todas as contas)</span>
+                <span className="text-sm font-bold text-rose-600">{fmtCurrency(contaTotals.reduce((a, c) => a + c.total, 0))}</span>
+              </div>
             </div>
 
             {/* Fornecedores de Mercadoria */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
               <SectionTitle icon={<ShoppingCart size={16} />} title="Fornecedores de Mercadoria"
                 badge={<TypeBadge type="saida" />}
-                tooltip={`Fornecedores com natureza 'COMPRA DE MERCADORIAS'. Mostra quem fornece o estoque da loja. Clique para ver os lançamentos individuais.`}
+                tooltip={`Fornecedores com natureza 'COMPRA DE MERCADORIAS'. Mostra quem fornece o estoque da loja. Clique num fornecedor para ver os lançamentos dele, ou em 'ver base completa' para todos.`}
               />
+              {saidasMercadoria.length > 0 && (
+                <button
+                  onClick={() => openBaseModal('Fornecedores de Mercadoria — base completa', saidasMercadoria)}
+                  className="text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 mb-2"
+                >
+                  Ver base completa ({saidasMercadoria.length} lançamentos) →
+                </button>
+              )}
               <div className="space-y-2 overflow-y-auto max-h-52">
                 {topFornecedoresMercadoria.map((f, idx) => {
                   const maxVal = topFornecedoresMercadoria[0]?.total || 1;
