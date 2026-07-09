@@ -11,7 +11,7 @@ import {
   getTopFornecedores, buildTimeSeries, calcVariation, fmtCurrency,
   chartGranularity, autoGranularity, getDayOfWeekTotals, periodKey,
 } from '../utils/analytics';
-import { DRE_MAPEAMENTO, SALDO_INICIAL_CAIXA } from '../utils/dreMapping';
+import { SALDO_INICIAL_CAIXA } from '../utils/dreMapping';
 import { KPICard } from '../components/KPICard';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { TransactionModal } from '../components/TransactionModal';
@@ -288,16 +288,6 @@ export function Dashboard({ saidas, entradas }: Props) {
     [saidasCur],
   );
   const topFornecedoresMercadoria = useMemo(() => getTopFornecedores(saidasMercadoria, 10), [saidasMercadoria]);
-
-  // DRE category split for charts
-  const dreMap     = useMemo(() => new Map(DRE_MAPEAMENTO.map((i) => [i.natureza.toUpperCase().trim(), i.categoria])), []);
-  const dreMapFull = useMemo(() => new Map(DRE_MAPEAMENTO.map((i) => [i.natureza.toUpperCase().trim(), i])), []);
-  const saidasOPEX     = useMemo(() => saidasCur.filter((t)  => dreMap.get(t.natureza.toUpperCase().trim()) === 'DESPESA_OPERACIONAL'),  [saidasCur, dreMap]);
-  const saidasPrevOPEX = useMemo(() => saidasPrev.filter((t) => dreMap.get(t.natureza.toUpperCase().trim()) === 'DESPESA_OPERACIONAL'),  [saidasPrev, dreMap]);
-  const saidasSGA      = useMemo(() => saidasCur.filter((t)  => { const item = dreMapFull.get(t.natureza.toUpperCase().trim()); return item?.categoria === 'DESPESA_ADMINISTRATIVA' && item.subcategoria !== 'Dividendos/Socios'; }), [saidasCur, dreMapFull]);
-  const saidasPrevSGA  = useMemo(() => saidasPrev.filter((t) => { const item = dreMapFull.get(t.natureza.toUpperCase().trim()); return item?.categoria === 'DESPESA_ADMINISTRATIVA' && item.subcategoria !== 'Dividendos/Socios'; }), [saidasPrev, dreMapFull]);
-  const opexNat = useMemo(() => getNaturezaComparativo(saidasOPEX, saidasPrevOPEX), [saidasOPEX, saidasPrevOPEX]);
-  const sgaNat  = useMemo(() => getNaturezaComparativo(saidasSGA,  saidasPrevSGA),  [saidasSGA,  saidasPrevSGA]);
 
   const dowSaidas   = useMemo(() => getDayOfWeekTotals(saidasCur),   [saidasCur]);
   const dowEntradas = useMemo(() => getDayOfWeekTotals(entradasCur), [entradasCur]);
@@ -598,139 +588,11 @@ export function Dashboard({ saidas, entradas }: Props) {
             </ResponsiveContainer>
           </div>
 
-          {/* Saídas por categoria DRE — OPEX e SGA separados */}
-          {saidas.length > 0 && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {/* OPEX */}
-              {opexNat.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart2 size={15} className="text-rose-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Operacionais (OPEX)</h2>
-                    <TypeBadge type="saida" />
-                    <InfoTooltip text="Saídas classificadas como Operacionais no mapeamento DRE: pessoal, ocupação, utilidades, marketing, logística, etc. Top 10 por valor realizado. Clique no gráfico para abrir a base completa de OPEX." />
-                  </div>
-                  <ResponsiveContainer width="100%" height={Math.max(240, opexNat.slice(0, 10).length * 30)}>
-                    <BarChart
-                      data={opexNat.slice(0, 10)}
-                      layout="vertical"
-                      margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
-                      onClick={() => openBaseModal('Despesas Operacionais (OPEX)', saidasOPEX)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="natureza" width={150} tick={{ fontSize: 10, fill: '#64748b' }}
-                        tickFormatter={(v: unknown) => { const s = String(v); return s.length > 22 ? s.slice(0, 22) + '…' : s; }}
-                      />
-                      <Tooltip content={({ active, payload, label }) =>
-                        active && payload?.length ? (
-                          <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="saida" /><span className="font-semibold text-slate-700">{label}</span></div>
-                            <p className="text-[10px] text-slate-400 mb-1">OPEX — Saída Operacional</p>
-                            <p className="font-bold text-rose-600">{fmtCurrency(payload[0].value as number)}</p>
-                            {(payload[0].payload as { previousTotal: number }).previousTotal > 0 && (() => {
-                              const cur = payload[0].value as number;
-                              const prev = (payload[0].payload as { previousTotal: number }).previousTotal;
-                              const v = ((cur - prev) / prev) * 100;
-                              return <p className={`text-[11px] font-bold mt-1 ${v > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{v > 0 ? '▲' : '▼'} {Math.abs(v).toFixed(1)}% vs período anterior</p>;
-                            })()}
-                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver a base completa (todos os lançamentos OPEX)</p>
-                          </div>
-                        ) : null
-                      } />
-                      <Bar dataKey="total" name="OPEX" radius={[0, 5, 5, 0]}>
-                        {opexNat.slice(0, 10).map((_, idx) => (
-                          <Cell key={idx} fill={SAIDA_COLORS[idx % SAIDA_COLORS.length]} />
-                        ))}
-                        <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* SGA */}
-              {sgaNat.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart2 size={15} className="text-violet-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas Administrativas (SG&A)</h2>
-                    <TypeBadge type="saida" />
-                    <InfoTooltip text="Saídas classificadas como Administrativas no mapeamento DRE: contabilidade, TI, frota, viagens, associações, etc. Top 10 por valor realizado. Clique no gráfico para abrir a base completa de SG&A." />
-                  </div>
-                  <ResponsiveContainer width="100%" height={Math.max(240, sgaNat.slice(0, 10).length * 30)}>
-                    <BarChart
-                      data={sgaNat.slice(0, 10)}
-                      layout="vertical"
-                      margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
-                      onClick={() => openBaseModal('Despesas de Vendas, Gerais e Administrativas (SG&A)', saidasSGA)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="natureza" width={150} tick={{ fontSize: 10, fill: '#64748b' }}
-                        tickFormatter={(v: unknown) => { const s = String(v); return s.length > 22 ? s.slice(0, 22) + '…' : s; }}
-                      />
-                      <Tooltip content={({ active, payload, label }) =>
-                        active && payload?.length ? (
-                          <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                            <div className="flex items-center gap-1.5 mb-1"><TypeBadge type="saida" /><span className="font-semibold text-slate-700">{label}</span></div>
-                            <p className="text-[10px] text-slate-400 mb-1">SG&A — Saída Administrativa</p>
-                            <p className="font-bold text-violet-600">{fmtCurrency(payload[0].value as number)}</p>
-                            {(payload[0].payload as { previousTotal: number }).previousTotal > 0 && (() => {
-                              const cur = payload[0].value as number;
-                              const prev = (payload[0].payload as { previousTotal: number }).previousTotal;
-                              const v = ((cur - prev) / prev) * 100;
-                              return <p className={`text-[11px] font-bold mt-1 ${v > 0 ? 'text-red-500' : 'text-emerald-600'}`}>{v > 0 ? '▲' : '▼'} {Math.abs(v).toFixed(1)}% vs período anterior</p>;
-                            })()}
-                            <p className="text-[10px] text-slate-400 mt-1 italic">Clique para ver a base completa (todos os lançamentos SG&A)</p>
-                          </div>
-                        ) : null
-                      } />
-                      <Bar dataKey="total" name="SG&A" radius={[0, 5, 5, 0]}>
-                        {sgaNat.slice(0, 10).map((_, idx) => (
-                          <Cell key={idx} fill={['#a78bfa','#c4b5fd','#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#ddd6fe','#ede9fe','#7e22ce','#9333ea'][idx % 10]} />
-                        ))}
-                        <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* Fallback: if no DRE mapping, show all naturezas */}
-              {opexNat.length === 0 && sgaNat.length === 0 && saidasNat.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 xl:col-span-2">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BarChart2 size={15} className="text-rose-500" />
-                    <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Saídas por Natureza</h2>
-                    <TypeBadge type="saida" />
-                    <InfoTooltip text="Top 12 naturezas de saída. Para ver separado por OPEX e SG&A, importe a base de saídas com as naturezas do mapeamento DRE." />
-                  </div>
-                  <ResponsiveContainer width="100%" height={360}>
-                    <BarChart data={saidasNat.slice(0, 12)} layout="vertical" margin={{ top: 4, right: 90, left: 8, bottom: 4 }}
-                      onClick={(data: unknown) => { const d = data as { activePayload?: { payload?: { natureza?: string } }[] } | null; const nat = d?.activePayload?.[0]?.payload?.natureza; if (nat) openNaturezaModal(nat); }}
-                      style={{ cursor: 'pointer' }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis type="category" dataKey="natureza" width={160} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v: unknown) => { const s = String(v); return s.length > 23 ? s.slice(0, 23) + '…' : s; }} />
-                      <Tooltip />
-                      <Bar dataKey="total" name="Saídas" radius={[0, 6, 6, 0]}>
-                        {saidasNat.slice(0, 12).map((_, idx) => <Cell key={idx} fill={SAIDA_COLORS[idx % SAIDA_COLORS.length]} />)}
-                        <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Conta + Fornecedores */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-              <SectionTitle icon={<CreditCard size={16} />} title="Saídas por Conta Bancária"
+              <SectionTitle icon={<CreditCard size={16} />} title="Despesas por Conta Bancária"
                 badge={<TypeBadge type="saida" />}
                 tooltip={`Soma das saídas realizadas por cada conta de débito no período. Cálculo: soma de V. Realizado agrupada pelo campo 'Conta'. Permite identificar qual conta concentra mais pagamentos. Total no período: ${fmtCurrency(totalSaidas)}.`}
               />

@@ -8,7 +8,7 @@ import { buildDRE } from '../utils/dreMapping';
 import type { DRELine, DREGroup } from '../utils/dreMapping';
 import { fmtCurrency } from '../utils/analytics';
 import { TransactionModal } from '../components/TransactionModal';
-import { ChevronDown, ChevronRight, AlertTriangle, FileText, Columns, LineChart } from 'lucide-react';
+import { ChevronDown, ChevronRight, AlertTriangle, FileText, Columns, LineChart, BarChart2 } from 'lucide-react';
 
 interface Props {
   saidas: Transaction[];
@@ -177,6 +177,28 @@ export function DrePage({ saidas, entradas }: Props) {
       return { mes: short, lucro: meses[mk] ?? 0 };
     });
   }, [dre]);
+
+  // Composição de OPEX (linha 6) e SG&A (linha 8) por natureza, para os gráficos
+  const opexTxs = L(6)?.transactions ?? [];
+  const sgaTxs = L(8)?.transactions ?? [];
+  const topNaturezas = (txs: Transaction[], n = 10) => {
+    const m = new Map<string, number>();
+    for (const t of txs) m.set(t.natureza, (m.get(t.natureza) ?? 0) + t.vRealizado);
+    return Array.from(m.entries())
+      .map(([natureza, total]) => ({ natureza, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, n);
+  };
+  const opexNat = topNaturezas(opexTxs);
+  const sgaNat = topNaturezas(sgaTxs);
+  const cfmt = (v: unknown) => {
+    const n = Number(v);
+    if (isNaN(n) || n === 0) return '';
+    const abs = Math.abs(n); const s = n < 0 ? '−' : '';
+    return abs >= 1_000_000 ? `${s}R$${(abs / 1_000_000).toFixed(1)}M` : abs >= 1000 ? `${s}R$${(abs / 1000).toFixed(0)}k` : `${s}R$${abs.toFixed(0)}`;
+  };
+  const OPEX_COLORS = ['#f43f5e','#fb923c','#fbbf24','#a78bfa','#f472b6','#e879f9','#fb7185','#fdba74','#fcd34d','#c4b5fd'];
+  const SGA_COLORS = ['#a78bfa','#c4b5fd','#8b5cf6','#7c3aed','#6d28d9','#5b21b6','#ddd6fe','#ede9fe','#7e22ce','#9333ea'];
 
   const pct = (v: number) =>
     receitaBruta > 0 ? ` (${((v / receitaBruta) * 100).toFixed(1)}% da entrada)` : '';
@@ -497,6 +519,74 @@ export function DrePage({ saidas, entradas }: Props) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Composição de Despesas — OPEX e SG&A (movidos da Visão Geral) */}
+      {(opexNat.length > 0 || sgaNat.length > 0) && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {opexNat.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart2 size={15} className="text-rose-500" />
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Despesas Operacionais (OPEX)</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={Math.max(240, opexNat.length * 30)}>
+                <BarChart data={opexNat} layout="vertical" margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
+                  onClick={() => opexTxs.length && setModal({ title: 'Despesas Operacionais (OPEX)', subtitle: `${opexTxs.length} lançamentos`, transactions: opexTxs })}
+                  style={{ cursor: 'pointer' }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis type="category" dataKey="natureza" width={150} tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickFormatter={(v: unknown) => { const s = String(v); return s.length > 22 ? s.slice(0, 22) + '…' : s; }} />
+                  <Tooltip content={({ active, payload, label }) =>
+                    active && payload?.length ? (
+                      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
+                        <p className="font-semibold text-slate-700">{label}</p>
+                        <p className="font-bold text-rose-600 mt-1">{fmtCurrency(payload[0].value as number)}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 italic">Clique para abrir a base completa de OPEX</p>
+                      </div>
+                    ) : null
+                  } />
+                  <Bar dataKey="total" radius={[0, 5, 5, 0]}>
+                    {opexNat.map((_, idx) => <Cell key={idx} fill={OPEX_COLORS[idx % OPEX_COLORS.length]} />)}
+                    <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          {sgaNat.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart2 size={15} className="text-violet-500" />
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Despesas de Vendas, Gerais e Administrativas (SG&amp;A)</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={Math.max(240, sgaNat.length * 30)}>
+                <BarChart data={sgaNat} layout="vertical" margin={{ top: 2, right: 90, left: 8, bottom: 2 }}
+                  onClick={() => sgaTxs.length && setModal({ title: 'Despesas de Vendas, Gerais e Administrativas (SG&A)', subtitle: `${sgaTxs.length} lançamentos`, transactions: sgaTxs })}
+                  style={{ cursor: 'pointer' }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" tickFormatter={cfmt} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis type="category" dataKey="natureza" width={150} tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickFormatter={(v: unknown) => { const s = String(v); return s.length > 22 ? s.slice(0, 22) + '…' : s; }} />
+                  <Tooltip content={({ active, payload, label }) =>
+                    active && payload?.length ? (
+                      <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
+                        <p className="font-semibold text-slate-700">{label}</p>
+                        <p className="font-bold text-violet-600 mt-1">{fmtCurrency(payload[0].value as number)}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 italic">Clique para abrir a base completa de SG&amp;A</p>
+                      </div>
+                    ) : null
+                  } />
+                  <Bar dataKey="total" radius={[0, 5, 5, 0]}>
+                    {sgaNat.map((_, idx) => <Cell key={idx} fill={SGA_COLORS[idx % SGA_COLORS.length]} />)}
+                    <LabelList dataKey="total" position="right" formatter={(v: unknown) => cfmt(v)} style={{ fontSize: 10, fontWeight: 600, fill: '#475569' }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 
