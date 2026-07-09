@@ -54,12 +54,30 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
 
   const temExtrato = bankBalances.length > 0;
 
-  // Valores por coluna
+  // ── Sistema (Ilimitar) ──
   const resultadoVal = (mk: string) => (mk === OPENING ? null : resultadoLine?.months[mk] ?? 0);
   const fluxoVal = (mk: string) => (mk === OPENING ? dre.saldoInicial : fluxoLine?.months[mk] ?? 0);
-  const extratoVal = (mk: string) => extratoByMonth.get(mk)?.total;
-  const diffVal = (mk: string) => {
-    const ex = extratoVal(mk);
+
+  // ── Extrato ──
+  // Fluxo de Caixa (extrato) = saldo bancário acumulado no fim do mês
+  const extratoFluxoVal = (mk: string) => extratoByMonth.get(mk)?.total;
+  // Resultado do Mês (extrato) = variação do saldo bancário no mês (mês atual − mês anterior)
+  const extratoResultadoVal = (mk: string): number | null | undefined => {
+    if (mk === OPENING) return null;
+    const idx = colKeys.indexOf(mk);
+    const atual = extratoFluxoVal(mk);
+    const anterior = extratoFluxoVal(colKeys[idx - 1]);
+    return atual === undefined || anterior === undefined ? undefined : atual - anterior;
+  };
+
+  // ── Comparativo (Extrato − Sistema) ──
+  const compResultadoVal = (mk: string): number | null | undefined => {
+    if (mk === OPENING) return null;
+    const er = extratoResultadoVal(mk);
+    return er === undefined || er === null ? undefined : er - (resultadoVal(mk) ?? 0);
+  };
+  const compFluxoVal = (mk: string) => {
+    const ex = extratoFluxoVal(mk);
     return ex === undefined ? undefined : ex - fluxoVal(mk);
   };
 
@@ -134,45 +152,43 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
               </tr>
             </thead>
             <tbody>
-              {/* Resultado do Mês */}
-              <tr className="border-b border-slate-100/60 bg-sky-50">
-                <td className="py-2.5 px-4 sticky left-0 z-10 bg-sky-50 border-r border-slate-200/50 whitespace-nowrap text-slate-700">
-                  (=) Resultado do Mês
+              {/* ── Subbloco 1 — Sistema (Ilimitar) ── */}
+              <tr>
+                <td colSpan={colKeys.length + 1} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-widest bg-sky-100 text-sky-800 border-y border-sky-200">
+                  Sistema (Ilimitar)
                 </td>
-                {colKeys.map((mk) => (
-                  <td key={mk} className="py-2.5 px-4 text-right border-l border-slate-100/30">{cell(resultadoVal(mk))}</td>
-                ))}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-sky-50/60">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-sky-50 border-r border-slate-200/50 whitespace-nowrap text-slate-700">(=) Resultado do Mês</td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(resultadoVal(mk))}</td>)}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-sky-100 font-bold">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-sky-100 border-r border-slate-200/50 whitespace-nowrap text-slate-800">Fluxo de Caixa</td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30 text-slate-800">{cell(fluxoVal(mk), { bold: true })}</td>)}
               </tr>
 
-              {/* Fluxo de Caixa (nosso sistema) */}
-              <tr className="border-b border-slate-100/60 bg-sky-100 font-bold">
-                <td className="py-2.5 px-4 sticky left-0 z-10 bg-sky-100 border-r border-slate-200/50 whitespace-nowrap text-slate-800">
-                  Fluxo de Caixa (sistema)
+              {/* ── Subbloco 2 — Extrato Bancário ── */}
+              <tr>
+                <td colSpan={colKeys.length + 1} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-800 border-y border-emerald-200">
+                  Extrato Bancário
                 </td>
-                {colKeys.map((mk) => (
-                  <td key={mk} className="py-2.5 px-4 text-right border-l border-slate-100/30 text-slate-800">{cell(fluxoVal(mk), { bold: true })}</td>
-                ))}
               </tr>
-
-              {/* Extrato Bancário (clicável para expandir) */}
-              <tr
-                className="border-b border-slate-100/60 bg-emerald-50 font-bold cursor-pointer hover:brightness-95"
-                onClick={() => setExtratoAberto((v) => !v)}
-              >
-                <td className="py-2.5 px-4 sticky left-0 z-10 bg-emerald-50 border-r border-slate-200/50 whitespace-nowrap text-slate-800">
+              <tr className="border-b border-slate-100/50 bg-emerald-50/60">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-emerald-50 border-r border-slate-200/50 whitespace-nowrap text-slate-700">
+                  (=) Resultado do Mês <span className="text-[9px] font-normal opacity-50">(variação do saldo)</span>
+                </td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(extratoResultadoVal(mk))}</td>)}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-emerald-100 font-bold cursor-pointer hover:brightness-95" onClick={() => setExtratoAberto((v) => !v)}>
+                <td className="py-2 px-4 sticky left-0 z-10 bg-emerald-100 border-r border-slate-200/50 whitespace-nowrap text-slate-800">
                   <span className="inline-flex items-center gap-1.5">
                     {extratoAberto ? <ChevronDown size={12} className="opacity-60" /> : <ChevronRight size={12} className="opacity-50" />}
                     <Landmark size={12} className="text-emerald-600" />
-                    Extrato Bancário
-                    <span className="text-[9px] font-normal opacity-50">(clique p/ detalhar)</span>
+                    Fluxo de Caixa <span className="text-[9px] font-normal opacity-50">(saldo — clique p/ detalhar)</span>
                   </span>
                 </td>
-                {colKeys.map((mk) => (
-                  <td key={mk} className="py-2.5 px-4 text-right border-l border-slate-100/30 text-slate-800">{cell(extratoVal(mk), { bold: true })}</td>
-                ))}
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30 text-slate-800">{cell(extratoFluxoVal(mk), { bold: true })}</td>)}
               </tr>
-
-              {/* Detalhe por conta (quando expandido) */}
               {extratoAberto && CONTAS.map((conta) => (
                 <tr key={conta.key} className="border-b border-slate-100/30 bg-white text-slate-600">
                   <td className="py-1.5 px-4 sticky left-0 z-10 bg-white border-r border-slate-200/40 pl-10 whitespace-nowrap">
@@ -192,22 +208,31 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
                 </tr>
               ))}
 
-              {/* Diferença */}
-              <tr className="border-t-2 border-slate-200 bg-amber-50 font-bold">
-                <td className="py-2.5 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-800">
-                  Diferença (Extrato − Fluxo)
+              {/* ── Subbloco 3 — Comparativo ── */}
+              <tr>
+                <td colSpan={colKeys.length + 1} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-widest bg-amber-100 text-amber-800 border-y border-amber-200">
+                  Comparativo (Extrato − Sistema)
                 </td>
-                {colKeys.map((mk) => (
-                  <td key={mk} className="py-2.5 px-4 text-right border-l border-slate-100/30">{cell(diffVal(mk), { bold: true, signed: true })}</td>
-                ))}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-amber-50/60 font-bold">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-900">
+                  Δ Resultado do Mês <span className="text-[9px] font-normal opacity-60">(movimento não registrado)</span>
+                </td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(compResultadoVal(mk), { bold: true, signed: true })}</td>)}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-amber-50 font-bold">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-900">
+                  Δ Fluxo de Caixa <span className="text-[9px] font-normal opacity-60">(diferença acumulada)</span>
+                </td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(compFluxoVal(mk), { bold: true, signed: true })}</td>)}
               </tr>
             </tbody>
           </table>
         </div>
         <div className="px-5 py-2.5 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50/50 leading-relaxed">
-          <strong>Fluxo de Caixa (sistema)</strong> = saldo inicial + acúmulo de (entradas − saídas) do PDV, idêntico ao DRE ·
-          <strong> Extrato Bancário</strong> = saldo real informado pelo banco no fim de cada mês ·
-          <strong> Diferença</strong> positiva = há caixa no banco não explicado pela base do PDV (ex.: empréstimos recebidos de outras lojas); negativa = saída de caixa não registrada.
+          <strong>Sistema (Ilimitar):</strong> Resultado do Mês = entradas − saídas do PDV; Fluxo de Caixa = saldo inicial + acúmulo desses resultados (idêntico ao DRE) ·
+          <strong> Extrato Bancário:</strong> Fluxo de Caixa = saldo real do banco no fim do mês; Resultado do Mês = variação do saldo (mês atual − anterior) ·
+          <strong> Comparativo:</strong> Δ Resultado do Mês = quanto entrou/saiu de caixa <em>sem passar pelo PDV</em> naquele mês (ex.: empréstimos entre lojas); Δ Fluxo de Caixa = diferença acumulada.
         </div>
       </div>
 
