@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Store, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 // ── Credenciais — altere aqui para mudar o acesso ────────────────────────────
 const CREDENTIALS = { user: 'admin', password: 'belissima2024' };
@@ -36,10 +36,8 @@ export function LoginPage({ onLogin }: Props) {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-rose-500 rounded-2xl flex items-center justify-center shadow-lg mb-4 ring-4 ring-rose-100">
-            <Store size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Motor Analítico</h1>
+          <img src="/bybrain-logo.svg" alt="ByBrain" className="w-16 h-16 shadow-lg mb-4 ring-4 ring-rose-100 rounded-2xl" />
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Audit</h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">Belíssima Bonsucesso</p>
         </div>
 
@@ -123,7 +121,7 @@ export function LoginPage({ onLogin }: Props) {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Motor Analítico Belíssima Bonsucesso © {new Date().getFullYear()}
+          Audit Belíssima Bonsucesso © {new Date().getFullYear()}
         </p>
       </div>
     </div>
