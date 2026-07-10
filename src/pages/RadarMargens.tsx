@@ -196,10 +196,7 @@ export function RadarMargens({ saidas, entradas }: Props) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-3 text-center">
         <TrendingUp size={40} className="text-slate-200" />
-        <p className="text-sm font-semibold text-slate-500">Carregue as planilhas para visualizar as margens</p>
-        <p className="text-xs text-slate-400 max-w-sm">
-          Importe saídas e entradas. O sistema calculará as margens do DRE mês a mês.
-        </p>
+        <p className="text-sm font-semibold text-slate-500">Processando dados…</p>
       </div>
     );
   }

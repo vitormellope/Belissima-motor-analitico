@@ -114,7 +114,7 @@ export function RadarVariacao({ saidas }: Props) {
     return (
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center">
         <Activity size={32} className="text-slate-300 mx-auto mb-3" />
-        <p className="text-sm text-slate-500">Faça o upload da planilha de saídas para visualizar o Radar de Variação.</p>
+        <p className="text-sm text-slate-500">Processando dados…</p>
       </div>
     );
   }

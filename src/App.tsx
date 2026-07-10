@@ -9,7 +9,7 @@ import { LoginPage } from './pages/LoginPage';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import {
   LayoutDashboard, BarChart3, Radar, TrendingUp,
-  LogOut, Store, ChevronRight, ChevronLeft, CreditCard, RefreshCw, AlertTriangle, Scale,
+  LogOut, ChevronRight, ChevronLeft, CreditCard, RefreshCw, AlertTriangle, Scale,
 } from 'lucide-react';
 
 type Page = 'dashboard' | 'dre' | 'radar' | 'margens' | 'resumo-vendas' | 'conciliacao';
@@ -51,12 +51,10 @@ export default function App() {
 
         {/* Logo */}
         <div className={`${collapsed ? 'px-2 pt-4 pb-4 justify-center' : 'px-5 pt-6 pb-5'} border-b border-slate-100 flex items-center gap-3`}>
-          <div className="w-9 h-9 bg-rose-500 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-            <Store size={17} className="text-white" />
-          </div>
+          <img src="/bybrain-logo.png" alt="ByBrain" className="w-9 h-9 rounded-xl shadow-sm shrink-0 object-contain" />
           {!collapsed && (
             <div>
-              <p className="text-sm font-bold text-slate-800 leading-tight">Motor Analítico</p>
+              <p className="text-sm font-bold text-slate-800 leading-tight">Audit</p>
               <p className="text-[11px] text-slate-400 leading-tight mt-0.5">Belíssima Bonsucesso</p>
             </div>
           )}

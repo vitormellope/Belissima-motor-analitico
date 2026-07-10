@@ -394,8 +394,7 @@ export function Dashboard({ saidas, entradas }: Props) {
 
       {!hasData && (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-10 text-center">
-          <p className="text-sm text-slate-500">Faça o upload das planilhas para iniciar a análise.</p>
-          <p className="text-xs text-slate-400 mt-1">Aceita <strong>saídas</strong> (Contas a Pagar) e <strong>entradas</strong> (Quadro de Vendas Diário).</p>
+          <p className="text-sm text-slate-500">Processando dados…</p>
         </div>
       )}
 

@@ -218,10 +218,7 @@ export function DrePage({ saidas, entradas }: Props) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 flex flex-col items-center gap-3 text-center">
         <FileText size={40} className="text-slate-200" />
-        <p className="text-sm font-semibold text-slate-500">Carregue as planilhas para visualizar a DRE</p>
-        <p className="text-xs text-slate-400 max-w-sm">
-          Importe a base de saídas e entradas. O sistema correlacionará automaticamente as naturezas com as linhas da DRE.
-        </p>
+        <p className="text-sm font-semibold text-slate-500">Processando dados…</p>
       </div>
     );
   }
