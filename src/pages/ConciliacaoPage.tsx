@@ -59,26 +59,23 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
   const fluxoVal = (mk: string) => (mk === OPENING ? dre.saldoInicial : fluxoLine?.months[mk] ?? 0);
 
   // ── Extrato ──
-  // Fluxo de Caixa (extrato) = saldo bancário acumulado no fim do mês
+  // Fluxo de Caixa (extrato) = saldo bancário real informado, mês a mês (dado bruto — sem nenhum cálculo derivado)
   const extratoFluxoVal = (mk: string) => extratoByMonth.get(mk)?.total;
-  // Resultado do Mês (extrato) = variação do saldo bancário no mês (mês atual − mês anterior)
-  const extratoResultadoVal = (mk: string): number | null | undefined => {
-    if (mk === OPENING) return null;
-    const idx = colKeys.indexOf(mk);
-    const atual = extratoFluxoVal(mk);
-    const anterior = extratoFluxoVal(colKeys[idx - 1]);
-    return atual === undefined || anterior === undefined ? undefined : atual - anterior;
-  };
 
   // ── Comparativo (Extrato − Sistema) ──
-  const compResultadoVal = (mk: string): number | null | undefined => {
-    if (mk === OPENING) return null;
-    const er = extratoResultadoVal(mk);
-    return er === undefined || er === null ? undefined : er - (resultadoVal(mk) ?? 0);
-  };
+  // Δ Fluxo de Caixa = diferença acumulada entre o saldo real do banco e o saldo projetado pelo sistema
   const compFluxoVal = (mk: string) => {
     const ex = extratoFluxoVal(mk);
     return ex === undefined ? undefined : ex - fluxoVal(mk);
+  };
+  // Δ no Mês = quanto essa diferença acumulada mudou neste mês (mês atual − mês anterior da própria linha acima).
+  // Não é uma comparação entre dois "resultados" de fontes distintas — é a variação da diferença já calculada.
+  const compMesVal = (mk: string): number | null | undefined => {
+    if (mk === OPENING) return null;
+    const idx = colKeys.indexOf(mk);
+    const atual = compFluxoVal(mk);
+    const anterior = compFluxoVal(colKeys[idx - 1]);
+    return atual === undefined || anterior === undefined ? undefined : atual - anterior;
   };
 
   // Dados do gráfico de proporção (meses com extrato)
@@ -173,12 +170,6 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
                   Extrato Bancário
                 </td>
               </tr>
-              <tr className="border-b border-slate-100/50 bg-emerald-50/60">
-                <td className="py-2 px-4 sticky left-0 z-10 bg-emerald-50 border-r border-slate-200/50 whitespace-nowrap text-slate-700">
-                  (=) Resultado do Mês <span className="text-[9px] font-normal opacity-50">(variação do saldo)</span>
-                </td>
-                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(extratoResultadoVal(mk))}</td>)}
-              </tr>
               <tr className="border-b border-slate-100/50 bg-emerald-100 font-bold cursor-pointer hover:brightness-95" onClick={() => setExtratoAberto((v) => !v)}>
                 <td className="py-2 px-4 sticky left-0 z-10 bg-emerald-100 border-r border-slate-200/50 whitespace-nowrap text-slate-800">
                   <span className="inline-flex items-center gap-1.5">
@@ -214,25 +205,25 @@ export function ConciliacaoPage({ saidas, entradas, bankBalances }: Props) {
                   Comparativo (Extrato − Sistema)
                 </td>
               </tr>
-              <tr className="border-b border-slate-100/50 bg-amber-50/60 font-bold">
-                <td className="py-2 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-900">
-                  Δ Resultado do Mês <span className="text-[9px] font-normal opacity-60">(movimento não registrado)</span>
-                </td>
-                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(compResultadoVal(mk), { bold: true, signed: true })}</td>)}
-              </tr>
               <tr className="border-b border-slate-100/50 bg-amber-50 font-bold">
                 <td className="py-2 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-900">
-                  Δ Fluxo de Caixa <span className="text-[9px] font-normal opacity-60">(diferença acumulada)</span>
+                  Δ Fluxo de Caixa <span className="text-[9px] font-normal opacity-60">(saldo real do banco − saldo projetado pelo sistema)</span>
                 </td>
                 {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(compFluxoVal(mk), { bold: true, signed: true })}</td>)}
+              </tr>
+              <tr className="border-b border-slate-100/50 bg-amber-50/60 font-bold">
+                <td className="py-2 px-4 sticky left-0 z-10 bg-amber-50 border-r border-slate-200/50 whitespace-nowrap text-amber-900">
+                  Δ no Mês <span className="text-[9px] font-normal opacity-60">(quanto a diferença acumulada mudou neste mês)</span>
+                </td>
+                {colKeys.map((mk) => <td key={mk} className="py-2 px-4 text-right border-l border-slate-100/30">{cell(compMesVal(mk), { bold: true, signed: true })}</td>)}
               </tr>
             </tbody>
           </table>
         </div>
         <div className="px-5 py-2.5 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50/50 leading-relaxed">
-          <strong>Sistema (Ilimitar):</strong> Resultado do Mês = entradas − saídas do PDV; Fluxo de Caixa = saldo inicial + acúmulo desses resultados (idêntico ao DRE) ·
-          <strong> Extrato Bancário:</strong> Fluxo de Caixa = saldo real do banco no fim do mês; Resultado do Mês = variação do saldo (mês atual − anterior) ·
-          <strong> Comparativo:</strong> Δ Resultado do Mês = quanto entrou/saiu de caixa <em>sem passar pelo PDV</em> naquele mês (ex.: empréstimos entre lojas); Δ Fluxo de Caixa = diferença acumulada.
+          <strong>Sistema (Ilimitar):</strong> Resultado do Mês = entradas − saídas do PDV; Fluxo de Caixa = saldo inicial ({fmtCurrency(dre.saldoInicial)}) + acúmulo desses resultados (idêntico ao DRE) ·
+          <strong> Extrato Bancário:</strong> Fluxo de Caixa = saldo real informado pelo banco no fim de cada mês (dado bruto, sem cálculo) ·
+          <strong> Comparativo:</strong> Δ Fluxo de Caixa = saldo real do banco menos o saldo que o sistema projetava naquele mês — se positivo, há caixa no banco não explicado pelo PDV (ex.: empréstimos entre lojas). Δ no Mês = o quanto essa diferença mudou no mês (entrada ou saída de caixa não registrada naquele período específico).
         </div>
       </div>
 
