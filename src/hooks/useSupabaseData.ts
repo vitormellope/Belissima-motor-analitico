@@ -85,7 +85,12 @@ export function useSupabaseData() {
         const { data, error } = await supabase
           .from('transactions')
           .select('*')
+          // "data" tem muitos valores repetidos — sem um desempate único (id),
+          // o Postgres pode devolver a mesma linha em duas páginas (ou pular linhas)
+          // ao paginar com range(), pois a ordenação de empates não é garantida
+          // entre requisições separadas.
           .order('data', { ascending: true })
+          .order('id', { ascending: true })
           .range(from, from + PAGE - 1);
         if (error) throw error;
         const page = (data ?? []) as TransactionRow[];
