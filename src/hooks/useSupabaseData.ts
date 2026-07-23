@@ -72,6 +72,7 @@ export function useSupabaseData() {
   const [lastImportedAt, setLastImportedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+  const [integrityWarning, setIntegrityWarning] = useState<string>();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,11 +81,12 @@ export function useSupabaseData() {
       // O Supabase limita cada select a 1000 linhas — paginar com range() garante
       // que TODAS as transações venham (senão meses inteiros somem do dashboard).
       const PAGE = 1000;
-      const rows: TransactionRow[] = [];
+      const rows: (TransactionRow & { id: number })[] = [];
+      let serverCount: number | null = null;
       for (let from = 0; ; from += PAGE) {
-        const { data, error } = await supabase
+        const { data, error, count } = await supabase
           .from('transactions')
-          .select('*')
+          .select('*', { count: from === 0 ? 'exact' : undefined })
           // "data" tem muitos valores repetidos — sem um desempate único (id),
           // o Postgres pode devolver a mesma linha em duas páginas (ou pular linhas)
           // ao paginar com range(), pois a ordenação de empates não é garantida
@@ -93,9 +95,26 @@ export function useSupabaseData() {
           .order('id', { ascending: true })
           .range(from, from + PAGE - 1);
         if (error) throw error;
-        const page = (data ?? []) as TransactionRow[];
+        if (from === 0) serverCount = count ?? null;
+        const page = (data ?? []) as (TransactionRow & { id: number })[];
         rows.push(...page);
         if (page.length < PAGE) break;
+      }
+
+      // Confere que a paginação trouxe cada linha exatamente uma vez — se algum dia
+      // esse desempate falhar de novo (ou por qualquer outro motivo a paginação
+      // vier inconsistente), avisa em vez de exibir números errados silenciosamente.
+      const uniqueIds = new Set(rows.map((r) => r.id));
+      if (uniqueIds.size !== rows.length) {
+        setIntegrityWarning(
+          `Paginação trouxe ${rows.length} linhas mas apenas ${uniqueIds.size} IDs únicos — há linhas duplicadas.`
+        );
+      } else if (serverCount !== null && serverCount !== rows.length) {
+        setIntegrityWarning(
+          `Tabela tem ${serverCount} linhas mas só ${rows.length} foram carregadas — dados podem estar incompletos.`
+        );
+      } else {
+        setIntegrityWarning(undefined);
       }
 
       const summaryRes = await supabase.from('payment_methods_summary').select('*');
@@ -133,5 +152,5 @@ export function useSupabaseData() {
     load();
   }, [load]);
 
-  return { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, refresh: load };
+  return { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, integrityWarning, refresh: load };
 }

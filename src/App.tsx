@@ -30,7 +30,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
 
-  const { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, refresh } = useSupabaseData();
+  const { saidas, entradas, paymentSummary, bankBalances, lastImportedAt, loading, error, integrityWarning, refresh } = useSupabaseData();
 
   const handleLogout = () => {
     sessionStorage.removeItem('belissima_auth');
@@ -99,6 +99,13 @@ export default function App() {
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-2">
                 <AlertTriangle size={13} className="text-red-500 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-red-600">Falha ao carregar dados: {error}</p>
+              </div>
+            )}
+
+            {integrityWarning && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-2">
+                <AlertTriangle size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-700">Possível inconsistência nos dados: {integrityWarning} Avise o suporte antes de confiar nos números.</p>
               </div>
             )}
 
